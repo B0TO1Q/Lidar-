@@ -23,6 +23,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
+body.simple .adv{display:none!important}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:12px;overflow:hidden;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit}
 #map{position:fixed;inset:0}
@@ -93,6 +94,20 @@ button{font:inherit;color:inherit}
 .tabs .badge{display:inline-block;min-width:15px;padding:0 4px;border-radius:8px;background:var(--line);color:var(--fg);font-family:var(--mono);font-size:9px;line-height:15px;margin-left:4px;letter-spacing:0}
 .tabs button[aria-selected="true"] .badge{background:rgba(0,0,0,.2);color:var(--gold-ink)}
 #hide svg{transition:transform .2s}
+.advbtn{all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:8px;color:var(--muted);font-size:11px;flex:none;white-space:nowrap}
+.advbtn:hover{color:var(--fg);background:var(--hover)}
+.advbtn[aria-pressed="true"]{color:var(--gold)}
+.advbtn:focus-visible{outline:2px solid var(--gold)}
+.advbtn .knob{width:24px;height:14px;border-radius:999px;background:var(--line);position:relative;flex:none}
+.advbtn .knob::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--fg);transition:transform .15s}
+.advbtn[aria-pressed="true"] .knob{background:var(--gold)}
+.advbtn[aria-pressed="true"] .knob::after{transform:translateX(10px);background:var(--gold-ink)}
+.bigsearch{position:relative}
+.bigsearch input[type=text]{padding:11px 12px 11px 36px;font-size:13px;border-radius:9px}
+.bigsearch svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.res{display:flex;flex-direction:column;gap:1px}
+.res .cat img,.res .ph{width:38px;height:38px;border-radius:7px;object-fit:cover;flex:none;background:var(--raise)}
+.picks{display:flex;flex-wrap:wrap;gap:6px}
 .panel.collapsed #hide svg{transform:rotate(180deg)}
 .body{overflow:auto;padding:14px;display:flex;flex-direction:column;gap:18px;min-height:0;flex:1;overscroll-behavior:contain;scrollbar-width:thin}
 section{display:flex;flex-direction:column;gap:9px}
@@ -250,6 +265,8 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
   .grab span{width:38px;height:5px;border-radius:3px;background:var(--line)}
   .tabbar{touch-action:none;padding-top:4px}
   #hide{display:none}
+  .advbtn .lb{font-size:0}
+  .advbtn .lb::after{content:"More";font-size:11px}
   .toast{bottom:calc(var(--sheet-px,120px) + 12px)}
   .subhead{top:-14px}
 }
@@ -263,7 +280,7 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
   <div class="sbar glass">
     <span class="brand">Wild<i>light</i></span><span class="sep"></span>
     <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;color:var(--muted)"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-    <input type="text" id="gq" placeholder="Search places, animals, hotspots" autocomplete="off" spellcheck="false" aria-label="Search places, animals and hotspots" aria-controls="sdrop" aria-expanded="false" role="combobox">
+    <input type="text" id="gq" placeholder="Search a place" autocomplete="off" spellcheck="false" aria-label="Search a place or wildlife hotspot" aria-controls="sdrop" aria-expanded="false" role="combobox">
     <button class="iconbtn" id="gqClear" aria-label="Clear search" hidden><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
   </div>
   <div class="sdrop glass" id="sdrop" role="listbox" hidden></div>
@@ -279,10 +296,10 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="3" fill="currentColor"/><circle cx="9" cy="9" r="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 .8v2.4M9 14.8v2.4M.8 9h2.4M14.8 9h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     <button class="cbtn" id="cCompass" aria-label="Face north and switch between flat and 3D view"><span class="tip" id="compTip">North up · flat view</span>
       <svg id="needle" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5l3 7.5H6z" fill="var(--bad)"/><path d="M9 16.5l-3-7.5h6z" fill="currentColor"/></svg></button>
-    <button class="cbtn" id="cLayers" aria-label="Map layers" aria-expanded="false" aria-controls="layersPop"><span class="tip">Layers</span>
+    <button class="cbtn adv" id="cLayers" aria-label="Map layers" aria-expanded="false" aria-controls="layersPop"><span class="tip">Layers</span>
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2l7 4-7 4-7-4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2 9.5l7 4 7-4M2 13l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
   </div>
-  <div class="cgroup glass">
+  <div class="cgroup glass adv">
     <button class="cbtn" id="bLive" aria-pressed="false" aria-label="Live sun"><span class="tip">Live sun · follow the real sun</span>
       <svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="3" fill="currentColor"/><g stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M7 .8v1.6M7 11.6v1.6M.8 7h1.6M11.6 7h1.6M2.6 2.6l1.1 1.1M10.3 10.3l1.1 1.1M2.6 11.4l1.1-1.1M10.3 3.7l1.1-1.1"/></g></svg></button>
     <button class="cbtn" id="bDay" aria-pressed="false" aria-label="Daylight"><span class="tip">Daylight · day and night</span>
@@ -321,10 +338,11 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
   <div class="tabbar" id="tabbar">
     <div class="tabs" role="tablist">
       <button role="tab" id="t-wild" aria-selected="true" data-tab="wild">Wildlife<span class="badge" id="wildN" hidden></span></button>
-      <button role="tab" id="t-scout" aria-selected="false" data-tab="scout">Scout</button>
+      <button role="tab" id="t-scout" aria-selected="false" data-tab="scout" hidden>Spot</button>
       <button role="tab" id="t-light" aria-selected="false" data-tab="light">Light</button>
-      <button role="tab" id="t-spots" aria-selected="false" data-tab="spots">Spots<span class="badge" id="spotN" hidden></span></button>
+      <button role="tab" class="adv" id="t-spots" aria-selected="false" data-tab="spots">Spots<span class="badge" id="spotN" hidden></span></button>
     </div>
+    <button class="advbtn" id="advBtn" aria-pressed="false" title="Show more tools: saved spots, live sun, shade, layers, browsing lists"><span class="knob" aria-hidden="true"></span><span class="lb">Advanced</span><span class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Advanced tools</span></button>
     <button class="iconbtn" id="hide" aria-expanded="true" aria-controls="panel" aria-label="Hide panel">
       <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
@@ -333,22 +351,36 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
   <!-- WILDLIFE -->
   <div class="body" id="p-wild" role="tabpanel" aria-labelledby="t-wild">
     <section>
+      <div class="lbl">Find any animal</div>
+      <div class="bigsearch">
+        <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input type="text" id="aq" placeholder="Moose, snowy owl, red fox…" autocomplete="off" spellcheck="false" aria-label="Search any animal">
+      </div>
+      <div class="res" id="aqRes"></div>
+      <div id="picksBox">
+        <div class="hint" style="margin-bottom:8px">Or start with one of these:</div>
+        <div class="picks" id="picks"></div>
+      </div>
+    </section>
+
+    <section>
       <div class="lbl">On the map <b id="actN"></b></div>
       <div class="onmap" id="onmap"></div>
     </section>
 
     <section>
+      <div class="lbl">Sightings from</div>
       <div class="row" style="flex-wrap:nowrap">
-        <select id="month" aria-label="Month" style="flex:1"></select>
-        <div class="seg" id="rgSeg" style="flex:1.3">
+        <select id="month" aria-label="Sightings from which month" style="flex:1"></select>
+        <div class="seg adv" id="rgSeg" style="flex:1.3">
           <button data-v="1" aria-pressed="true">Verified</button>
           <button data-v="0" aria-pressed="false">All</button>
         </div>
       </div>
     </section>
 
-    <section>
-      <div class="lbl">Find animals</div>
+    <section class="adv">
+      <div class="lbl">Browse popular &amp; rare</div>
       <div class="seg" id="tier">
         <button data-v="all" aria-pressed="true">All</button>
         <button data-v="popular" aria-pressed="false">Popular</button>
@@ -361,11 +393,11 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
         <button class="chip" data-v="other" aria-pressed="false">Reptiles &amp; more</button>
         <button class="chip" data-v="ct" aria-pressed="false">Connecticut</button>
       </div>
-      <input type="text" id="cq" placeholder="Filter this list, or name any animal" autocomplete="off" aria-label="Filter animals">
+      <input type="text" id="cq" placeholder="Filter this list" autocomplete="off" aria-label="Filter animals">
       <div class="catalog" id="catalog" role="list"></div>
     </section>
 
-    <details id="heatBox">
+    <details id="heatBox" class="adv">
       <summary>All-sightings heatmap</summary>
       <div>
         <div class="sw-row"><span class="tx"><b>Show heatmap</b><i id="heatNote">Every animal photographed, colored by how often.</i></span><input type="checkbox" class="switch" id="sightOn" checked aria-label="Show heatmap"></div>
@@ -405,11 +437,11 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
           <div class="fact"><span>Sunrise</span><b id="fRise">—</b></div>
           <div class="fact"><span>Sunset</span><b id="fSet">—</b></div>
         </div>
-        <div class="row">
+        <div class="row adv">
           <input type="text" id="spotName" placeholder="Name this spot" aria-label="Spot name" style="flex:1">
           <button class="btn solid" id="saveSpot">Save</button>
         </div>
-        <div class="row">
+        <div class="row adv">
           <button class="btn ghost" id="copyLL">Copy coordinates</button>
           <a class="btn ghost" id="mapsLink" target="_blank" rel="noopener">Directions</a>
         </div>
@@ -443,7 +475,9 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
         <div id="selSp" style="display:flex;flex-direction:column;gap:8px"></div>
       </section>
 
-      <section>
+      <div class="card" id="spDetail" hidden></div>
+
+      <section class="adv">
         <div class="lbl">Seen nearby
           <select id="radius" aria-label="Search radius" style="width:auto;padding:4px 8px">
             <option value="5">5 km</option><option value="10" selected>10 km</option><option value="25">25 km</option><option value="50">50 km</option>
@@ -451,7 +485,6 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
         </div>
         <div class="hint" id="nearNote"></div>
         <div class="splist" id="near"></div>
-        <div class="card" id="spDetail" hidden></div>
       </section>
     </div>
   </div>
@@ -479,11 +512,11 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
     </section>
     <section>
       <div class="card" style="gap:0;padding:4px 12px">
-        <div class="sw-row"><span class="tx"><b>Live sun</b><i>Follow the real sun right now.</i></span><input type="checkbox" class="switch" id="lLive" aria-label="Live sun"></div>
-        <div class="sw-row"><span class="tx"><b>Daylight</b><i>Light the globe by the sun, with night on the far side.</i></span><input type="checkbox" class="switch" id="lDay" aria-label="Daylight"></div>
-        <div class="sw-row"><span class="tx"><b>Shade</b><i>Hills cast shadows. Zoom in closer than about 40 km to see it.</i></span><input type="checkbox" class="switch" id="lShade" aria-label="Shade"></div>
+        <div class="sw-row adv"><span class="tx"><b>Live sun</b><i>Follow the real sun right now.</i></span><input type="checkbox" class="switch" id="lLive" aria-label="Live sun"></div>
+        <div class="sw-row"><span class="tx"><b>Show sunlight</b><i>Light the globe by the sun at the time above, with night on the far side.</i></span><input type="checkbox" class="switch" id="lDay" aria-label="Daylight"></div>
+        <div class="sw-row adv"><span class="tx"><b>Shade</b><i>Hills cast shadows. Zoom in closer than about 40 km to see it.</i></span><input type="checkbox" class="switch" id="lShade" aria-label="Shade"></div>
       </div>
-      <div class="hint">Times are local to your pin, or to the middle of the screen when there's no pin. The same three switches sit on the right edge of the map.</div>
+      <div class="hint">Times are local to your pin, or to the middle of the screen when there's no pin.</div>
     </section>
   </div>
 
@@ -499,11 +532,11 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
 <div class="coach glass" id="coach" role="dialog" aria-label="Welcome" hidden>
   <h2>Wild<span style="color:var(--gold)">light</span></h2>
   <ol>
-    <li><b>Search</b> a place, an animal or a hotspot in the bar at the top.</li>
-    <li><b>Tap the globe</b> anywhere for a scouting report: light, sky and animals.</li>
-    <li><b>Paint animals</b> from the Wildlife tab to see where they're seen most.</li>
-    <li><b>Live sun, Daylight, Shade</b> on the right show the real light on the land.</li>
+    <li><b>Wildlife tab:</b> search any animal and tap it to see where it's seen.</li>
+    <li><b>Tap the globe</b> anywhere for that spot's sunrise, golden hour and sky.</li>
+    <li><b>Light tab:</b> slide through the day to see the sun on the land.</li>
   </ol>
+  <div class="hint">Want saved spots, live sun, shade and map layers? Turn on <b style="color:var(--gold)">Advanced</b> next to the tabs.</div>
   <button class="btn solid" id="coachOk">Start exploring</button>
 </div>
 <div id="err" hidden></div>
@@ -672,7 +705,7 @@ buildRelief();
 /* ================= wildlife filter state & sightings layer ================= */
 const now=new Date();
 const F={taxon:1,month:now.getMonth()+1,rg:true,opacity:.85,show:true};
-const ms=$("month");ms.innerHTML='<option value="0">All year</option>'+MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("");
+const ms=$("month");ms.innerHTML='<option value="0">Any time of year</option>'+MONTHS.map((m,i)=>`<option value="${i+1}">${new Date(2000,i,1).toLocaleString("en-US",{month:"long"})}</option>`).join("");
 ms.value=String(F.month);
 function obsParams(extra={}){
   const p={taxon_id:F.taxon,month:F.month||"",...extra};
@@ -859,10 +892,11 @@ function renderLegend(){
   key.innerHTML=active.map(a=>`<div class="kchip glass" data-id="${a.id}"><span class="sw" style="background:${a.color};border-color:${a.color}"></span><span>${esc(a.name)}</span><button data-a="hot" title="Fly to where it's seen most">Hotspot</button><button class="rm" data-a="rm" aria-label="Remove ${esc(a.name)}">×</button></div>`).join("");
   const om=$("onmap");
   om.innerHTML=n?active.map(a=>`<div class="om" data-id="${a.id}"><span class="sw" style="background:${a.color};border-color:${a.color}"></span><span class="nm"><b>${esc(a.name)}</b><i>${esc(a.sci)}</i></span><button class="btn ghost" data-a="hot">Hotspot</button><button class="iconbtn" data-a="rm" aria-label="Remove ${esc(a.name)}"><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>`).join("")
-    :`<div class="empty"><b>Nothing painted yet</b><span class="hint">Tap an animal below, or search one at the top. Each gets its own color on the map so you can see where it's seen most.</span></div>`;
+    :`<div class="hint">Nothing yet. Pick an animal above and its sightings show up on the globe in its own color.</div>`;
   [key,om].forEach(box=>box.querySelectorAll("[data-id]").forEach(r=>{const id=+r.dataset.id;
     r.querySelector('[data-a="rm"]').addEventListener("click",()=>removeSpecies(id));
     r.querySelector('[data-a="hot"]').addEventListener("click",()=>hotspot(active.find(a=>a.id===id)));}));
+  refreshAq();
 }
 async function hotspot(a){
   if(!a)return;toast(`Finding where ${a.name} has been seen most…`,8000);
@@ -1088,8 +1122,8 @@ async function scout(lat,lng,name){
   $("pinLL").textContent=lat.toFixed(5)+", "+lng.toFixed(5);
   $("mapsLink").href="https://www.google.com/maps/dir/?api=1&destination="+lat.toFixed(6)+","+lng.toFixed(6);
   $("spotName").value=name||"";$("pinElev").textContent="—";$("fRise").textContent=$("fSet").textContent="—";
-  tab("scout",phone.matches&&sheet==="full"?"full":"half");
-  $("placeName").textContent=name||"Dropped pin";if(!name)placeName(lat,lng,my);
+  $("t-scout").hidden=false;tab("scout",phone.matches&&sheet==="full"?"full":"half");
+  $("t-scout").hidden=false;$("placeName").textContent=name||"Dropped pin";if(!name)placeName(lat,lng,my);
   drawPin();renderLight();refreshLight();
   $("fc").innerHTML='<div class="skel" style="grid-column:1/-1">Loading forecast…</div>';$("fcNote").textContent="";
   loadNearby();
@@ -1281,7 +1315,7 @@ async function placeName(lat,lng,my){
   }catch(_){}
 }
 function clearPin(){
-  pin=null;scoutSeq++;drawPin();drawSunNow();$("scoutEmpty").hidden=false;$("scoutBody").hidden=true;$("spDetail").hidden=true;refreshLight();scene.requestRender();
+  pin=null;scoutSeq++;$("t-scout").hidden=true;if(curTab==="scout")tab("wild");drawPin();drawSunNow();$("scoutEmpty").hidden=false;$("scoutBody").hidden=true;$("spDetail").hidden=true;refreshLight();scene.requestRender();
 }
 $("clearPin").addEventListener("click",clearPin);
 
@@ -1323,14 +1357,13 @@ function hotItems(list){return list.map(h=>({kind:"hot",title:h.name,sub:h.sub,g
 function spotItems(list){return list.map(s=>({kind:"spot",title:s.name,sub:s.lat.toFixed(3)+", "+s.lng.toFixed(3),go:"Scout",act:()=>{flyTo(s.lng,s.lat,5000,-35,0);scout(s.lat,s.lng,s.name);}}));}
 function animalItems(list){return list.map(e=>{const a=active.find(x=>x.sci===e.sci);return {kind:"animal",title:e.name,sub:e.where,color:a?a.color:"",go:a?"On map":"Paint",act:()=>{if(!a)toggleCatalog(e,null);else hotspot(a);}};});}
 function showEmptyDrop(){
-  renderDrop([["Your spots",spotItems(spots.slice(0,4))],["Wildlife hotspots",hotItems(HOTSPOTS)]]);openDrop(true);
+  renderDrop([["Your spots",adv?spotItems(spots.slice(0,4)):[]],["Wildlife hotspots",hotItems(HOTSPOTS)]]);openDrop(true);
 }
 function runSearch(q){
   const ql=q.toLowerCase(),my=++sSeq;
   const hs=HOTSPOTS.filter(h=>(h.name+" "+h.sub).toLowerCase().includes(ql)).slice(0,4);
-  const sp=spots.filter(s=>s.name.toLowerCase().includes(ql)).slice(0,3);
-  const an=CATALOG.filter(e=>(e.name+" "+e.sci).toLowerCase().includes(ql)).slice(0,5);
-  const base=[["Your spots",spotItems(sp)],["Animals",animalItems(an)],["Hotspots",hotItems(hs)]];
+  const sp=adv?spots.filter(s=>s.name.toLowerCase().includes(ql)).slice(0,3):[];
+  const base=[["Your spots",spotItems(sp)],["Hotspots",hotItems(hs)]];
   renderDrop([...base,["Places",[],'<span class="skel">Searching places…</span>']]);openDrop(true);
   clearTimeout(sT);sT=setTimeout(async()=>{
     let places=[],msg="";
@@ -1341,12 +1374,7 @@ function runSearch(q){
       if(!places.length)msg="No places match. Try a town, park, lake or mountain.";
     }catch(err){msg="Place search is unavailable right now ("+esc(err.message)+").";}
     if(my!==sSeq)return;
-    let more=[];
-    if(q.length>=3&&!an.length){try{const r=await inat("taxa/autocomplete",{q,per_page:4,taxon_id:1,is_active:"true"});
-      more=(r.results||[]).filter(t=>t.rank_level<=10).map(t=>{const a=active.find(x=>x.id===t.id);return {kind:"animal",photo:t.default_photo?.square_url,title:t.preferred_common_name||t.name,sub:t.name+" · "+(t.observations_count||0).toLocaleString()+" sightings",color:a?a.color:"",go:a?"On map":"Paint",
-        act:()=>a?hotspot(a):addSpecies({id:t.id,name:t.preferred_common_name||t.name,sci:t.name,photo:t.default_photo?.square_url||""})};});}catch(_){}}
-    if(my!==sSeq)return;
-    renderDrop([["Your spots",spotItems(sp)],["Animals",[...animalItems(an),...more]],["Places",places,msg],["Hotspots",hotItems(hs)]]);
+    renderDrop([["Your spots",spotItems(sp)],["Places",places,msg],["Hotspots",hotItems(hs)]]);
   },280);
 }
 function pickItem(it){if(!it)return;openDrop(false);gq.value="";$("gqClear").hidden=true;gq.blur();it.act();}
@@ -1408,11 +1436,62 @@ $("lShade").addEventListener("change",e=>setShade(e.target.checked));
 $("lPrev").addEventListener("click",()=>{setLive(false);shiftDay(-1);});$("lNext").addEventListener("click",()=>{setLive(false);shiftDay(1);});
 $("scoutHere").addEventListener("click",()=>{const c=viewCenter();if(!c){toast("Point the globe at land or sea first.");return;}const g=C.Cartographic.fromCartesian(c);scout(C.Math.toDegrees(g.latitude),C.Math.toDegrees(g.longitude));});
 
-/* ================= coach ================= */
-if(!store.get("wl.coach2",false)){$("coach").hidden=false;$("coachOk").focus();}
-$("coachOk").addEventListener("click",()=>{$("coach").hidden=true;store.set("wl.coach2",true);});
+/* ================= advanced mode ================= */
+let adv=store.get("wl.adv",false);
+function setAdv(on,announce){
+  adv=on;document.body.classList.toggle("simple",!on);$("advBtn").setAttribute("aria-pressed",on);store.set("wl.adv",on);
+  if(!on){setLive(false);setShade(false);closeLayers();if(curTab==="spots")tab("wild");}
+  F.show=on&&$("sightOn").checked;buildSightings();
+  if(announce)toast(on?"Advanced on: saved spots, live sun, shade, map layers, browsing lists and the heatmap.":"Simple view. Turn Advanced back on any time.");
+}
+$("advBtn").addEventListener("click",()=>setAdv(!adv,true));
+$("sightOn").addEventListener("change",e=>{F.show=adv&&e.target.checked;buildSightings();});
 
-layoutMode();
+/* ================= animal search (Wildlife tab) ================= */
+const PICKS=["Bald Eagle","Snowy Owl","Moose","American Black Bear","Red Fox","Great Blue Heron","Bobcat","Humpback Whale","Atlantic Puffin","Gray Wolf"];
+let aqSeq=0,aqT=0,aqLast=[];
+function aqRow(it){
+  const a=it.id?active.find(x=>x.id===it.id):active.find(x=>x.sci===it.sci);
+  const b=document.createElement("button");b.className="cat";b.setAttribute("aria-pressed",!!a);
+  const img=it.photo?`<img alt="" loading="lazy" src="${esc(it.photo)}">`:`<span class="ph"></span>`;
+  b.innerHTML=`${img}<span class="nm"><b>${esc(it.name)}</b><i>${esc(it.sub)}</i></span>${a?`<span class="sw" style="background:${a.color};border-color:${a.color}"></span>`:""}<span class="add">${a?"On map":"Show"}</span>`;
+  b.addEventListener("click",()=>{
+    if(a){removeSpecies(a.id);return;}
+    if(it.cat)toggleCatalog(it.cat,null);else addSpecies({id:it.id,name:it.name,sci:it.sci,photo:it.photo||""});
+  });
+  return b;
+}
+function drawAq(){const box=$("aqRes");box.innerHTML="";aqLast.forEach(it=>box.appendChild(aqRow(it)));}
+function refreshAq(){if(aqLast.length)drawAq();renderPicks();}
+function renderPicks(){
+  const box=$("picks");box.innerHTML="";
+  PICKS.map(n=>CATALOG.find(e=>e.name===n)).filter(Boolean).forEach(e=>{const a=active.find(x=>x.sci===e.sci),c=document.createElement("button");
+    c.className="chip";c.setAttribute("aria-pressed",!!a);c.textContent=e.name;c.addEventListener("click",()=>toggleCatalog(e,null));box.appendChild(c);});
+}
+async function animalSearch(q){
+  const my=++aqSeq,ql=q.toLowerCase();
+  const local=CATALOG.filter(e=>(e.name+" "+e.sci).toLowerCase().includes(ql)).slice(0,4).map(e=>({cat:e,name:e.name,sci:e.sci,sub:e.where+(e.iucn&&e.iucn!=="LC"&&e.iucn!=="DD"?" · "+IUCN[e.iucn]:"")}));
+  aqLast=local;drawAq();
+  if(q.length<2)return;
+  $("aqRes").insertAdjacentHTML("beforeend",'<div class="hint skel" style="padding:8px">Searching every animal…</div>');
+  try{
+    const r=await inat("taxa/autocomplete",{q,per_page:12,taxon_id:1,is_active:"true"});if(my!==aqSeq)return;
+    const seen=new Set([...local.map(x=>x.sci.toLowerCase()),...local.map(x=>x.name.toLowerCase())]);
+    const more=(r.results||[]).filter(t=>t.rank_level<=10&&!seen.has(t.name.toLowerCase())&&!seen.has((t.preferred_common_name||"").toLowerCase())).slice(0,8)
+      .map(t=>({id:t.id,name:t.preferred_common_name?t.preferred_common_name.replace(/\b\w/g,c=>c.toUpperCase()):t.name,sci:t.name,photo:t.default_photo?.square_url||"",sub:t.name+" · "+(t.observations_count||0).toLocaleString()+" sightings"}));
+    aqLast=[...local,...more];drawAq();
+    if(!aqLast.length)$("aqRes").innerHTML='<div class="hint" style="padding:8px">No animals match that name. Try a common name like "hawk" or "deer".</div>';
+  }catch(err){if(my!==aqSeq)return;drawAq();$("aqRes").insertAdjacentHTML("beforeend",`<div class="hint" style="padding:8px">Couldn't search iNaturalist: ${esc(err.message)}.</div>`);}
+}
+$("aq").addEventListener("input",e=>{const v=e.target.value.trim();$("picksBox").hidden=!!v;clearTimeout(aqT);
+  if(!v){aqSeq++;aqLast=[];$("aqRes").innerHTML="";return;}aqT=setTimeout(()=>animalSearch(v),250);});
+$("aq").addEventListener("keydown",e=>{if(e.key==="Enter"){const f=$("aqRes").querySelector(".cat");if(f)f.click();}if(e.key==="Escape")e.target.blur();});
+
+/* ================= coach ================= */
+if(!store.get("wl.coach3",false)){$("coach").hidden=false;$("coachOk").focus();}
+$("coachOk").addEventListener("click",()=>{$("coach").hidden=true;store.set("wl.coach3",true);});
+
+setAdv(adv,false);renderPicks();layoutMode();
 if(phone.matches)setSheet("peek",false);
 rebuildActive();buildSightings();renderLegend();renderCatalog();
 viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-50,25,22000000)});altText();updateCompass();refreshLight();
