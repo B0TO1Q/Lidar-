@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Relief Globe Live</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" crossorigin="anonymous">
+<style>
+/* Layout: full-bleed streaming globe; survey console left on desktop, bottom sheet on phone */
+:root{
+  --bg:#070a0b; --panel:rgba(14,19,20,.88); --line:#26302f; --fg:#e4ebe7; --muted:#8a9893;
+  --accent:#f2b84b;
+  --display:"Saira Semi Condensed","Arial Narrow",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:12px;overflow:hidden}
+#map{position:fixed;inset:0;background:#000}
+.panel{position:fixed;z-index:2;top:calc(16px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));width:280px;
+  background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:6px;
+  padding:14px;display:flex;flex-direction:column;gap:13px;max-height:calc(100% - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;box-sizing:border-box}
+h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.04em;text-transform:uppercase;margin:0;line-height:1}
+.sub{color:var(--muted);margin-top:4px;line-height:1.4}
+.grp{display:flex;flex-direction:column;gap:7px}
+.lbl{font-family:var(--display);font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+.lbl b{color:var(--accent);font-family:var(--mono);font-weight:600;letter-spacing:0}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{all:unset;text-align:center;padding:7px 4px;cursor:pointer;color:var(--muted);font-size:11px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#1a1206;font-weight:600}
+button:focus-visible,.tog:focus-within{outline:2px solid var(--accent);outline-offset:1px}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:3px;padding:4px 7px;font-size:11px;color:var(--fg)}
+.chips button:hover{border-color:var(--accent);color:var(--accent)}
+.tog{display:flex;align-items:center;gap:8px;cursor:pointer}
+.tog input{accent-color:var(--accent);margin:0}
+.row{display:flex;gap:14px;flex-wrap:wrap}
+.readout{position:fixed;z-index:2;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-variant-numeric:tabular-nums;display:grid;grid-template-columns:auto auto;gap:3px 12px;min-width:170px}
+.readout .k{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--muted);align-self:center}
+.note{color:var(--muted);font-size:10px;line-height:1.5;border-top:1px solid var(--line);padding-top:10px}
+.badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;border:1px solid var(--line);color:var(--muted)}
+.badge.on{border-color:var(--accent);color:var(--accent)}
+.maplibregl-ctrl-attrib{background:rgba(7,10,11,.7)!important;color:var(--muted)}
+.maplibregl-ctrl-attrib a{color:var(--fg)!important}
+@media (max-width:640px){
+  .panel{top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;max-height:46%;gap:10px;padding:12px}
+  .readout{top:calc(10px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px))}
+  .note{display:none}
+  .maplibregl-ctrl-bottom-right{bottom:48%}
+}
+</style>
+</head>
+<body>
+<div id="map" aria-label="Interactive globe"></div>
+
+<aside class="panel">
+  <div>
+    <h1>Relief Globe</h1>
+    <div class="sub">Live satellite imagery with USGS LiDAR relief</div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Layer mix <b id="mixv">60%</b></div>
+    <input type="range" id="mix" min="0" max="100" value="60" aria-label="Satellite to LiDAR mix">
+    <div class="ends"><span>Satellite</span><span>LiDAR relief</span></div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Relief style</div>
+    <div class="seg" id="style">
+      <button data-v="Hillshade Multidirectional" aria-pressed="true">Hillshade</button>
+      <button data-v="Hillshade Elevation Tinted" aria-pressed="false">Tinted</button>
+      <button data-v="Slope Map" aria-pressed="false">Slope</button>
+    </div>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">3D terrain exaggeration <b id="exv">1.5×</b></div>
+    <input type="range" id="ex" min="0" max="40" value="15" aria-label="Terrain exaggeration">
+  </div>
+
+  <div class="row">
+    <label class="tog"><input type="checkbox" id="contours"> Contours</label>
+    <label class="tog"><input type="checkbox" id="labels"> Place names</label>
+  </div>
+
+  <div class="grp">
+    <div class="lbl">Fly to</div>
+    <div class="chips" id="fly">
+      <button data-c="-72.845,41.612" data-z="14.2" data-p="62" data-b="20">Ragged Mtn, Southington</button>
+      <button data-c="-72.895,41.428" data-z="14" data-p="60" data-b="-30">Sleeping Giant</button>
+      <button data-c="-72.73,41.66" data-z="9.3" data-p="45" data-b="0">Central CT</button>
+      <button data-c="-112.11,36.10" data-z="12.6" data-p="65" data-b="60">Grand Canyon</button>
+      <button data-c="-122.19,46.19" data-z="12.4" data-p="60" data-b="200">Mt St Helens</button>
+      <button data-c="86.92,27.99" data-z="11.8" data-p="70" data-b="150">Everest</button>
+      <button data-c="7.66,45.98" data-z="12.5" data-p="68" data-b="250">Matterhorn</button>
+      <button data-c="-40,25" data-z="1.6" data-p="0" data-b="0">Whole Earth</button>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="badge" id="lidarBadge">LiDAR</span> USGS 3DEP LiDAR relief (about 1 m) inside the United States. Elsewhere the relief is shaded live from global terrain data. Imagery: Esri World Imagery. Terrain: AWS Terrain Tiles.
+  </div>
+</aside>
+
+<div class="readout" aria-live="polite">
+  <span class="k">Lat</span><div id="rlat">—</div>
+  <span class="k">Lon</span><div id="rlon">—</div>
+  <span class="k">Elev</span><div id="rel">—</div>
+  <span class="k">Zoom</span><div id="rz">—</div>
+</div>
+
+<div id="err" hidden style="position:fixed;z-index:9;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:520px;margin:auto;background:#1a0f0f;border:1px solid #7a3b3b;border-radius:6px;padding:14px;color:#f3dede;font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap"></div>
+<script>
+function showErr(m){const e=document.getElementById("err");e.hidden=false;e.textContent+=(e.textContent?"\n\n":"")+m;}
+window.addEventListener("error",ev=>showErr("Error: "+(ev.message||"unknown")+(ev.filename?"\n"+ev.filename+":"+ev.lineno:"")));
+window.addEventListener("unhandledrejection",ev=>showErr("Error: "+(ev.reason&&ev.reason.message||ev.reason)));
+</script>
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js" crossorigin="anonymous"></script>
+<script>
+if(!window.maplibregl){showErr("The map library didn't load. This page needs a normal web browser with internet access. In-app file previews block it.");throw new Error("no maplibre");}
+let tileErrs=0;
+const LIDAR = (fn) =>
+  "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage" +
+  "?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=512,512&format=png32&transparent=true&f=image" +
+  "&renderingRule=" + encodeURIComponent(JSON.stringify({rasterFunction: fn}));
+const TERRARIUM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+const US_BOUNDS = [-179.9, 17.5, -64.5, 71.5];
+
+const map = new maplibregl.Map({
+  container: "map",
+  center: [-60, 30], zoom: 1.6, pitch: 0, maxPitch: 80,
+  attributionControl: { compact: true },
+  style: {
+    version: 8,
+    projection: { type: "globe" },
+    sky: {
+      "sky-color": "#0b1a2a", "horizon-color": "#5c7fa3", "fog-color": "#22384d",
+      "sky-horizon-blend": 0.6, "horizon-fog-blend": 0.6, "fog-ground-blend": 0.9,
+      "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 1, 6, 0.6, 10, 0]
+    },
+    sources: {
+      sat: {
+        type: "raster", tileSize: 256, maxzoom: 19,
+        tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+        attribution: "Imagery © Esri, Maxar, Earthstar Geographics"
+      },
+      dem: { type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 15, tiles: [TERRARIUM],
+        attribution: "Terrain: AWS Terrain Tiles (Mapzen, USGS, SRTM and others)" },
+      demShade: { type: "raster-dem", encoding: "terrarium", tileSize: 256, maxzoom: 15, tiles: [TERRARIUM] },
+      lidar: { type: "raster", tileSize: 512, minzoom: 5, maxzoom: 19, bounds: US_BOUNDS,
+        tiles: [LIDAR("Hillshade Multidirectional")], attribution: "LiDAR relief: USGS 3D Elevation Program" },
+      contours: { type: "raster", tileSize: 512, minzoom: 11, maxzoom: 19, bounds: US_BOUNDS,
+        tiles: [LIDAR("Contour Smoothed 25")] },
+      labels: { type: "raster", tileSize: 256, maxzoom: 19,
+        tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"] }
+    },
+    layers: [
+      { id: "bg", type: "background", paint: { "background-color": "#050708" } },
+      { id: "sat", type: "raster", source: "sat", paint: { "raster-fade-duration": 150 } },
+      { id: "shade", type: "hillshade", source: "demShade",
+        paint: { "hillshade-exaggeration": 0.7, "hillshade-shadow-color": "#000000",
+                 "hillshade-highlight-color": "#ffffff", "hillshade-accent-color": "#2a2a2a",
+                 "hillshade-illumination-direction": 315 } },
+      { id: "lidar", type: "raster", source: "lidar", paint: { "raster-fade-duration": 150 } },
+      { id: "contours", type: "raster", source: "contours", layout: { visibility: "none" }, paint: { "raster-opacity": 0.85 } },
+      { id: "labels", type: "raster", source: "labels", layout: { visibility: "none" } }
+    ],
+    terrain: { source: "dem", exaggeration: 1.5 }
+  }
+});
+map.on("error",(e)=>{const m=(e.error&&e.error.message)||"";if(/tile|fetch|Failed|load/i.test(m)){if(++tileErrs===8)showErr("Several map tiles failed to load. Check your connection. If it persists, tell Claude which layer is blank.\n"+m);}else showErr("Map error: "+m);});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+map.addControl(new maplibregl.ScaleControl({ unit: "imperial" }), "bottom-right");
+
+const $ = (id) => document.getElementById(id);
+let mixVal = 0.6;
+
+function applyMix() {
+  // Satellite stays full; relief layers fade over it. At 100% satellite is hidden.
+  map.setPaintProperty("sat", "raster-opacity", mixVal >= 0.999 ? 0 : 1);
+  map.setPaintProperty("lidar", "raster-opacity", mixVal);
+  map.setPaintProperty("shade", "hillshade-exaggeration", 0.25 + mixVal * 0.75);
+  map.setPaintProperty("shade", "hillshade-highlight-color", `rgba(255,255,255,${mixVal * 0.9})`);
+  map.setPaintProperty("shade", "hillshade-shadow-color", `rgba(0,0,0,${0.25 + mixVal * 0.75})`);
+  map.setPaintProperty("bg", "background-color", "#050708");
+  $("mixv").textContent = Math.round(mixVal * 100) + "%";
+}
+
+map.on("load", () => {
+  applyMix();
+  updateBadge();
+  map.easeTo({ center: [-72.7, 41.6], zoom: 2.2, duration: 2500 });
+});
+
+$("mix").addEventListener("input", (e) => { mixVal = e.target.value / 100; applyMix(); });
+
+$("style").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  $("style").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  map.getSource("lidar").setTiles([LIDAR(b.dataset.v)]);
+});
+
+$("ex").addEventListener("input", (e) => {
+  const v = e.target.value / 10;
+  $("exv").textContent = v.toFixed(1) + "×";
+  map.setTerrain(v > 0 ? { source: "dem", exaggeration: v } : null);
+});
+
+$("contours").addEventListener("change", (e) => map.setLayoutProperty("contours", "visibility", e.target.checked ? "visible" : "none"));
+$("labels").addEventListener("change", (e) => map.setLayoutProperty("labels", "visibility", e.target.checked ? "visible" : "none"));
+
+$("fly").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  const [lng, lat] = b.dataset.c.split(",").map(Number);
+  map.flyTo({ center: [lng, lat], zoom: +b.dataset.z, pitch: +b.dataset.p, bearing: +b.dataset.b,
+    duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 6000, essential: true });
+});
+
+function inUS(c) { return c.lng > US_BOUNDS[0] && c.lng < US_BOUNDS[2] && c.lat > US_BOUNDS[1] && c.lat < US_BOUNDS[3]; }
+function updateBadge() {
+  const on = map.getZoom() >= 5 && inUS(map.getCenter());
+  $("lidarBadge").classList.toggle("on", on);
+  $("lidarBadge").textContent = on ? "LiDAR active" : "LiDAR";
+  $("rz").textContent = map.getZoom().toFixed(1);
+}
+map.on("moveend", updateBadge);
+map.on("zoom", () => { $("rz").textContent = map.getZoom().toFixed(1); });
+
+const tileCache = new Map();
+function demTile(z, x, y) {
+  const key = z + "/" + x + "/" + y;
+  if (!tileCache.has(key)) {
+    tileCache.set(key, new Promise((res) => {
+      const img = new Image(); img.crossOrigin = "anonymous";
+      img.onload = () => { const c = document.createElement("canvas"); c.width = c.height = 256;
+        const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+        try { res(g.getImageData(0, 0, 256, 256).data); } catch (_) { res(null); } };
+      img.onerror = () => res(null);
+      img.src = TERRARIUM.replace("{z}", z).replace("{x}", x).replace("{y}", y);
+    }));
+  }
+  return tileCache.get(key);
+}
+async function elevationAt(ll) {
+  const z = Math.max(0, Math.min(14, Math.round(map.getZoom()) + 1)), n = 2 ** z;
+  const lat = Math.max(-85.05, Math.min(85.05, ll.lat)) * Math.PI / 180;
+  const fx = ((ll.lng + 180) / 360) * n, fy = (1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2 * n;
+  const x = Math.floor(fx), y = Math.floor(fy);
+  const d = await demTile(z, ((x % n) + n) % n, Math.max(0, Math.min(n - 1, y)));
+  if (!d) return null;
+  const px = Math.min(255, Math.floor((fx - x) * 256)), py = Math.min(255, Math.floor((fy - y) * 256)), i = (py * 256 + px) * 4;
+  return d[i] * 256 + d[i + 1] + d[i + 2] / 256 - 32768;
+}
+let readSeq = 0;
+async function readout(ll) {
+  $("rlat").textContent = Math.abs(ll.lat).toFixed(5) + "° " + (ll.lat >= 0 ? "N" : "S");
+  $("rlon").textContent = Math.abs(ll.lng).toFixed(5) + "° " + (ll.lng >= 0 ? "E" : "W");
+  const seq = ++readSeq, el = await elevationAt(ll);
+  if (seq !== readSeq) return;
+  $("rel").textContent = el == null ? "—" : Math.round(el).toLocaleString() + " m · " + Math.round(el * 3.28084).toLocaleString() + " ft";
+}
+let moveT = 0;
+map.on("mousemove", (e) => { clearTimeout(moveT); moveT = setTimeout(() => readout(e.lngLat), 60); });
+map.on("click", (e) => readout(e.lngLat));
+</script>
+</body>
+</html>
