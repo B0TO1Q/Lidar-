@@ -3,124 +3,309 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Relief Globe</title>
+<title>Wildlight</title>
+<meta name="description" content="Wildlife photography scouting globe: sightings, golden hour, sky forecast and terrain, pole to pole.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium/Widgets/widgets.css">
 <style>
-/* Layout: full-bleed globe; survey console left on desktop, bottom sheet on phone */
+/* Layout: full-bleed globe; field console docked left on desktop, bottom sheet on phone.
+   Palette: night-forest neutrals, golden-hour amber for light, blue-hour blue, sky-quality greens/reds. */
 :root{
-  --bg:#070a0b; --panel:rgba(14,19,20,.88); --line:#26302f; --fg:#e4ebe7; --muted:#8a9893;
-  --accent:#f2b84b;
+  --bg:#060908; --panel:rgba(11,16,14,.92); --raise:#131b18; --line:#25302b; --fg:#e6ece8; --muted:#8d9a93;
+  --gold:#f2b84b; --blue:#86aee0; --good:#94d17e; --warn:#e6a94f; --bad:#e07563;
   --display:"Saira Semi Condensed","Arial Narrow",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:dark;
 }
+*{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:12px;overflow:hidden}
 #map{position:fixed;inset:0}
-.cesium-viewer-bottom{left:auto!important;right:8px;bottom:4px!important;max-width:60%}
-.cesium-widget-credits{font-size:9px!important;opacity:.7}
-.panel{position:fixed;z-index:2;top:calc(16px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));width:288px;box-sizing:border-box;
-  background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:6px;
-  padding:14px;display:flex;flex-direction:column;gap:13px;max-height:calc(100% - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto}
-h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.04em;text-transform:uppercase;margin:0;line-height:1}
-.sub{color:var(--muted);margin-top:4px;line-height:1.4}
-.head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-#hide{all:unset;flex:none;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;color:var(--accent);cursor:pointer}
-#hide:hover{border-color:var(--accent)}
+.cesium-viewer-bottom{left:auto!important;right:8px;bottom:4px!important;max-width:55%}
+.cesium-widget-credits{font-size:9px!important;opacity:.65}
+
+/* panel */
+.panel{position:fixed;z-index:2;top:calc(16px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));width:340px;
+  background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:8px;
+  display:flex;flex-direction:column;max-height:calc(100% - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:hidden}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 12px 10px 14px}
+h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.05em;text-transform:uppercase;margin:0;line-height:1}
+h1 i{font-style:normal;color:var(--gold)}
+.sub{color:var(--muted);margin-top:3px;font-size:11px}
+#hide{all:unset;flex:none;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;color:var(--gold);cursor:pointer}
+#hide:hover{border-color:var(--gold)}
 #hide svg{transition:transform .2s ease}
-.panel.collapsed{gap:0}
-.panel.collapsed>:not(.head),.panel.collapsed .sub{display:none}
-.panel.collapsed h1{font-size:16px;margin-top:6px}
+.panel.collapsed .tabs,.panel.collapsed .body,.panel.collapsed .sub{display:none}
+.panel.collapsed h1{font-size:16px}
 .panel.collapsed #hide svg{transform:rotate(180deg)}
-@media (prefers-reduced-motion:reduce){#hide svg{transition:none}}
-.grp{display:flex;flex-direction:column;gap:7px}
-.lbl{font-family:var(--display);font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
-.lbl b{color:var(--accent);font-family:var(--mono);font-weight:600;letter-spacing:0}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:4px;overflow:hidden}
-.seg button{all:unset;text-align:center;padding:7px 4px;cursor:pointer;color:var(--muted);font-size:11px}
-.seg button+button{border-left:1px solid var(--line)}
-.seg button[aria-pressed="true"]{background:var(--accent);color:#1a1206;font-weight:600}
-button:focus-visible,.tog:focus-within{outline:2px solid var(--accent);outline-offset:1px}
-input[type=range]{width:100%;accent-color:var(--accent);margin:0}
-.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);margin:0 12px;border:1px solid var(--line);border-radius:5px;overflow:hidden;flex:none}
+.tabs button{all:unset;text-align:center;padding:8px 4px;cursor:pointer;color:var(--muted);font-family:var(--display);font-weight:500;letter-spacing:.1em;text-transform:uppercase;font-size:11px}
+.tabs button+button{border-left:1px solid var(--line)}
+.tabs button[aria-selected="true"]{background:var(--gold);color:#1a1206;font-weight:700}
+.tabs .n{font-family:var(--mono);font-size:10px;opacity:.8}
+.body{overflow:auto;padding:12px 12px 14px 14px;display:flex;flex-direction:column;gap:14px;min-height:0;overscroll-behavior:contain}
+section{display:flex;flex-direction:column;gap:8px}
+#scoutBody{display:flex;flex-direction:column;gap:16px}
+.lbl{font-family:var(--display);font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lbl b{color:var(--gold);font-family:var(--mono);font-weight:600;letter-spacing:0;text-transform:none}
+.card{background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
-.chips button{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:3px;padding:4px 7px;font-size:11px;color:var(--fg)}
-.chips button:hover{border-color:var(--accent);color:var(--accent)}
-.tog{display:flex;align-items:center;gap:8px;cursor:pointer}
-.tog input{accent-color:var(--accent);margin:0}
-.row{display:flex;gap:14px;flex-wrap:wrap}
+.chip{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:3px;padding:4px 7px;font-size:11px;color:var(--fg);line-height:1.3}
+.chip:hover{border-color:var(--gold);color:var(--gold)}
+.chip[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#1a1206;font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible,.tog:focus-within{outline:2px solid var(--gold);outline-offset:1px}
+input[type=range]{width:100%;accent-color:var(--gold);margin:0}
+input[type=text],input[type=date],select{font:inherit;color:var(--fg);background:#0c1210;border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:100%;min-width:0}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>*{min-width:0}
+.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
+.tog{display:flex;align-items:center;gap:7px;cursor:pointer}
+.tog input{accent-color:var(--gold);margin:0}
+.btn{all:unset;cursor:pointer;border:1px solid var(--gold);color:var(--gold);border-radius:4px;padding:6px 10px;font-size:11px;font-weight:600;text-align:center}
+.btn:hover{background:rgba(242,184,75,.12)}
+.btn.solid{background:var(--gold);color:#1a1206}
+.btn.ghost{border-color:var(--line);color:var(--fg);font-weight:400}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.muted{color:var(--muted)}
+.hint{color:var(--muted);font-size:11px;line-height:1.5}
+.note{color:var(--muted);font-size:10px;line-height:1.55;border-top:1px solid var(--line);padding-top:10px}
+a{color:var(--gold)}
+
+/* species search */
+.search{position:relative}
+.sresults{position:absolute;left:0;right:0;top:calc(100% + 3px);background:#0c1210;border:1px solid var(--line);border-radius:5px;z-index:5;max-height:260px;overflow:auto}
+.sresults button{all:unset;display:flex;gap:8px;align-items:center;padding:6px;width:100%;box-sizing:border-box;cursor:pointer}
+.sresults button:hover,.sresults button:focus-visible{background:var(--raise)}
+.sresults img,.sp img{width:38px;height:38px;border-radius:4px;object-fit:cover;flex:none;background:#1b2420}
+.picked{display:flex;align-items:center;gap:8px;border:1px solid var(--gold);border-radius:5px;padding:5px}
+.picked img{width:34px;height:34px;border-radius:4px;object-fit:cover}
+.nm{display:flex;flex-direction:column;min-width:0;flex:1}
+.nm b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm i{color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.x{all:unset;cursor:pointer;color:var(--muted);padding:2px 6px;font-size:14px}
+.x:hover{color:var(--fg)}
+
+/* light table */
+.light{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;font-variant-numeric:tabular-nums;align-items:center}
+.light>span{white-space:nowrap}
+.light .k{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:10px}
+.light .gold{color:var(--gold)} .light .blue{color:var(--blue)}
+.light .az{color:var(--muted);font-size:10px;text-align:right}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.daynav{display:flex;align-items:center;gap:6px}
+.daynav .btn{padding:4px 9px}
+.daynav input{flex:1}
+
+/* forecast */
+.fc{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.fc button{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:4px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-variant-numeric:tabular-nums}
+.fc button[aria-pressed="true"]{border-color:var(--gold)}
+.fc .d{font-family:var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.fc .sky{width:100%;display:flex;flex-direction:column;gap:2px;align-items:center}
+.fc .sky span{width:70%;height:5px;border-radius:2px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10px;color:var(--muted)}
+
+/* species list */
+.splist{display:flex;flex-direction:column;gap:4px}
+.sp{all:unset;cursor:pointer;display:flex;gap:8px;align-items:center;padding:5px;border-radius:5px;border:1px solid transparent}
+.sp:hover,.sp:focus-visible{border-color:var(--line);background:var(--raise)}
+.sp .c{font-variant-numeric:tabular-nums;color:var(--muted);font-size:10px;text-align:right;flex:none}
+.months{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:64px}
+.months div{background:var(--gold);opacity:.35;border-radius:2px 2px 0 0;min-height:2px}
+.months div.on{opacity:1}
+.mlab{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;font-size:9px;color:var(--muted);text-align:center}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.photos a{display:block;position:relative;aspect-ratio:1;max-width:100%;border-radius:4px;overflow:hidden;background:#1b2420}
+.photos img{width:100%;height:100%;object-fit:cover;display:block}
+.photos span{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.8));color:#fff;font-size:9px;padding:8px 4px 3px}
+.spot{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:5px;padding:7px}
+.spot .nm b{color:var(--fg)}
+
+/* readout */
 .readout{position:fixed;z-index:2;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));
-  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-variant-numeric:tabular-nums;display:grid;grid-template-columns:auto auto;gap:3px 12px;min-width:180px}
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px;font-variant-numeric:tabular-nums;display:grid;grid-template-columns:auto auto;gap:3px 12px;min-width:170px}
 .readout .k{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--muted);align-self:center}
-.readout .src{grid-column:1/-1;color:var(--accent);font-size:10px;margin-top:3px}
-.note{color:var(--muted);font-size:10px;line-height:1.5;border-top:1px solid var(--line);padding-top:10px}
+.skel{color:var(--muted);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.4}}
 #err{position:fixed;z-index:9;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:520px;margin:auto;background:#1a0f0f;border:1px solid #7a3b3b;border-radius:6px;padding:14px;color:#f3dede;white-space:pre-wrap;line-height:1.5}
+@media (prefers-reduced-motion:reduce){#hide svg{transition:none}.skel{animation:none}}
 @media (max-width:640px){
-  .panel{top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;max-height:44%;gap:10px;padding:12px}
-  .readout{top:calc(10px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));min-width:0}
-  .note{display:none}
+  .panel{top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;max-height:56%}
+  .head{padding:10px 10px 8px 12px}
+  h1{font-size:18px}
+  .readout{display:none}
   .cesium-viewer-bottom{display:none}
+  .note{display:none}
 }
 </style>
 </head>
 <body>
-<div id="map" aria-label="Interactive globe"></div>
+<div id="map" aria-label="Interactive globe. Tap anywhere to scout that spot."></div>
 
 <aside class="panel" id="panel">
   <div class="head">
     <div>
-      <h1>Relief Globe</h1>
-      <div class="sub">Satellite imagery and high-resolution relief, pole to pole</div>
+      <h1>Wild<i>light</i></h1>
+      <div class="sub">Find the animal. Find the light.</div>
     </div>
     <button id="hide" aria-expanded="true" aria-controls="panel" aria-label="Hide menu">
-      <svg class="up" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
-
-  <div class="grp">
-    <div class="lbl">Layer mix <b id="mixv">60%</b></div>
-    <input type="range" id="mix" min="0" max="100" value="60" aria-label="Satellite to relief mix">
-    <div class="ends"><span>Satellite</span><span>LiDAR relief</span></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="t-explore" aria-selected="true" data-tab="explore">Explore</button>
+    <button role="tab" id="t-scout" aria-selected="false" data-tab="scout">Scout</button>
+    <button role="tab" id="t-spots" aria-selected="false" data-tab="spots">Spots <span class="n" id="spotN"></span></button>
   </div>
 
-  <div class="grp">
-    <div class="lbl">Relief style</div>
-    <div class="seg" id="style">
-      <button data-v="hs" aria-pressed="true">Hillshade</button>
-      <button data-v="tint" aria-pressed="false">Tinted</button>
-      <button data-v="slope" aria-pressed="false">Slope</button>
+  <!-- EXPLORE -->
+  <div class="body" id="p-explore" role="tabpanel">
+    <section>
+      <div class="lbl">Wildlife sightings <label class="tog"><input type="checkbox" id="sightOn" checked> Show</label></div>
+      <div class="chips" id="groups">
+        <button class="chip" data-t="1" aria-pressed="true">All animals</button>
+        <button class="chip" data-t="3" aria-pressed="false">Birds</button>
+        <button class="chip" data-t="40151" aria-pressed="false">Mammals</button>
+        <button class="chip" data-t="26036" aria-pressed="false">Reptiles</button>
+        <button class="chip" data-t="20978" aria-pressed="false">Amphibians</button>
+        <button class="chip" data-t="47158" aria-pressed="false">Insects</button>
+        <button class="chip" data-t="47178" aria-pressed="false">Fish</button>
+      </div>
+      <div class="search">
+        <input type="text" id="q" placeholder="Search a species: snowy owl, moose, puffin…" autocomplete="off" aria-label="Search a species">
+        <div class="sresults" id="qres" hidden></div>
+      </div>
+      <div id="pickedBox"></div>
+      <div class="row">
+        <select id="month" aria-label="Month" style="flex:1"></select>
+        <label class="tog"><input type="checkbox" id="rg" checked> Research grade</label>
+      </div>
+      <div class="lbl">Sightings opacity <b id="sopv">85%</b></div>
+      <input type="range" id="sop" min="10" max="100" value="85" aria-label="Sightings opacity">
+    </section>
+
+    <section>
+      <div class="lbl">Sunlight on the terrain</div>
+      <div class="row">
+        <input type="date" id="date" aria-label="Date" style="flex:1">
+        <label class="tog"><input type="checkbox" id="sunOn"> Real sun</label>
+      </div>
+      <div class="lbl">Time <b id="timev">—</b></div>
+      <input type="range" id="time" min="0" max="1439" step="5" value="420" aria-label="Time of day">
+      <div class="chips" id="timeJump">
+        <button class="chip" data-j="blueAM">Blue AM</button>
+        <button class="chip" data-j="sunrise">Sunrise</button>
+        <button class="chip" data-j="noon">Noon</button>
+        <button class="chip" data-j="goldPM">Golden PM</button>
+        <button class="chip" data-j="sunset">Sunset</button>
+      </div>
+      <label class="tog"><input type="checkbox" id="shadows"> Cast terrain shadows <span class="muted">(heavier)</span></label>
+      <div class="hint">Times are local to your pin, or to the middle of the screen when there is no pin.</div>
+    </section>
+
+    <section>
+      <div class="lbl">Map</div>
+      <div class="lbl">Relief mix <b id="mixv">25%</b></div>
+      <input type="range" id="mix" min="0" max="100" value="25" aria-label="Satellite to relief mix">
+      <div class="ends"><span>Satellite</span><span>LiDAR relief</span></div>
+      <div class="lbl">3D terrain <b id="exv">1.5×</b></div>
+      <input type="range" id="ex" min="0" max="40" value="15" aria-label="Terrain exaggeration">
+      <div class="row">
+        <label class="tog"><input type="checkbox" id="labels"> Place names</label>
+        <label class="tog"><input type="checkbox" id="contours"> Contours</label>
+      </div>
+    </section>
+
+    <section>
+      <div class="lbl">Fly to a hotspot</div>
+      <div class="chips" id="fly">
+        <button class="chip" data-ll="-73.287,41.459" data-r="5000" data-p="-35" data-h="0" data-g="3">Shepaug eagles, CT</button>
+        <button class="chip" data-ll="-72.552,41.262" data-r="6000" data-p="-40" data-h="0" data-g="3">Hammonasset, CT</button>
+        <button class="chip" data-ll="-110.20,44.88" data-r="22000" data-p="-30" data-h="60" data-g="40151">Lamar Valley</button>
+        <button class="chip" data-ll="-155.778,58.554" data-r="5000" data-p="-30" data-h="90" data-g="40151">Brooks Falls</button>
+        <button class="chip" data-ll="-94.17,58.77" data-r="45000" data-p="-40" data-h="0" data-g="40151">Churchill</button>
+        <button class="chip" data-ll="15.6,78.2" data-r="70000" data-p="-35" data-h="30" data-g="40151">Svalbard</button>
+        <button class="chip" data-ll="35.14,-1.49" data-r="45000" data-p="-35" data-h="0" data-g="40151">Maasai Mara</button>
+        <button class="chip" data-ll="22.9,-19.3" data-r="90000" data-p="-40" data-h="0" data-g="40151">Okavango</button>
+        <button class="chip" data-ll="-56.77,-17.36" data-r="30000" data-p="-35" data-h="0" data-g="40151">Pantanal</button>
+        <button class="chip" data-ll="-90.4,-0.6" data-r="160000" data-p="-45" data-h="0" data-g="1">Galápagos</button>
+        <button class="chip" data-ll="76.45,26.02" data-r="20000" data-p="-35" data-h="0" data-g="40151">Ranthambore</button>
+        <button class="chip" data-ll="-63.494,-64.825" data-r="30000" data-p="-30" data-h="200" data-g="3">Antarctic Peninsula</button>
+        <button class="chip" data-ll="0,-89.5" data-r="2600000" data-p="-88" data-h="0" data-g="1">South Pole</button>
+        <button class="chip" data-ll="-40,25" data-r="16000000" data-p="-88" data-h="0" data-g="1">Whole Earth</button>
+      </div>
+    </section>
+
+    <div class="note">Sightings: iNaturalist community observations. Light: SunCalc. Sky forecast: Open-Meteo. Relief: USGS 3DEP LiDAR (US), ArcticDEM, AntarcticDEM, Esri World Hillshade. Imagery: Esri World Imagery with NASA Blue Marble at the poles.</div>
+  </div>
+
+  <!-- SCOUT -->
+  <div class="body" id="p-scout" role="tabpanel" hidden>
+    <div id="scoutEmpty" class="card">
+      <b>Tap anywhere on the globe</b>
+      <div class="hint">You'll get that spot's golden and blue hours, which way the sun rises and sets, a 7-day sky forecast for sunrise and sunset, and the animals people have photographed nearby, with their best months.</div>
+    </div>
+    <div id="scoutBody" hidden>
+      <section>
+        <div class="lbl">Pin <span><b id="pinElev"></b></span></div>
+        <div class="row" style="justify-content:space-between">
+          <span id="pinLL" style="font-variant-numeric:tabular-nums"></span>
+          <span class="row" style="gap:6px">
+            <button class="btn ghost" id="copyLL">Copy</button>
+            <a class="btn ghost" id="mapsLink" target="_blank" rel="noopener">Directions</a>
+          </span>
+        </div>
+        <div class="row">
+          <input type="text" id="spotName" placeholder="Name this spot" aria-label="Spot name" style="flex:1">
+          <button class="btn solid" id="saveSpot">Save spot</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="lbl">Light <span class="muted" id="tzNote"></span></div>
+        <div class="daynav">
+          <button class="btn ghost" id="dPrev" aria-label="Previous day">‹</button>
+          <input type="date" id="date2" aria-label="Scout date">
+          <button class="btn ghost" id="dNext" aria-label="Next day">›</button>
+        </div>
+        <div class="card"><div class="light" id="lightTbl"></div></div>
+      </section>
+
+      <section>
+        <div class="lbl">Sky at sunrise / sunset</div>
+        <div class="fc" id="fc"><div class="skel" style="grid-column:1/-1">Loading forecast…</div></div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--gold)"></span>Color potential</span>
+          <span><span class="dot" style="background:var(--good)"></span>Clear</span>
+          <span><span class="dot" style="background:var(--muted)"></span>Mixed</span>
+          <span><span class="dot" style="background:#5d6a64"></span>Overcast</span>
+          <span><span class="dot" style="background:var(--bad)"></span>Rain likely</span>
+        </div>
+        <div class="hint" id="fcNote"></div>
+      </section>
+
+      <section id="selSpSec" hidden>
+        <div class="lbl">Your species near here</div>
+        <div class="card" id="selSp"></div>
+      </section>
+
+      <section>
+        <div class="lbl">Seen nearby
+          <select id="radius" aria-label="Search radius" style="width:auto;padding:3px 6px">
+            <option value="5">5 km</option><option value="10" selected>10 km</option><option value="25">25 km</option><option value="50">50 km</option>
+          </select>
+        </div>
+        <div class="hint" id="nearNote"></div>
+        <div class="splist" id="near"></div>
+        <div class="card" id="spDetail" hidden></div>
+      </section>
     </div>
   </div>
 
-  <div class="grp">
-    <div class="lbl">3D terrain exaggeration <b id="exv">1.5×</b></div>
-    <input type="range" id="ex" min="0" max="40" value="15" aria-label="Terrain exaggeration">
-  </div>
-
-  <div class="row">
-    <label class="tog"><input type="checkbox" id="contours"> Contours</label>
-    <label class="tog"><input type="checkbox" id="labels"> Place names</label>
-  </div>
-
-  <div class="grp">
-    <div class="lbl">Fly to</div>
-    <div class="chips" id="fly">
-      <button data-ll="-72.845,41.612" data-r="3200" data-p="-28" data-h="20">Ragged Mtn, Southington</button>
-      <button data-ll="-72.895,41.428" data-r="3400" data-p="-30" data-h="-30">Sleeping Giant</button>
-      <button data-ll="-72.73,41.66" data-r="90000" data-p="-50" data-h="0">Central CT</button>
-      <button data-ll="0,89.5" data-r="1600000" data-p="-88" data-h="0">North Pole</button>
-      <button data-ll="0,-89.5" data-r="2600000" data-p="-88" data-h="0">South Pole</button>
-      <button data-ll="-85.62,-78.53" data-r="22000" data-p="-25" data-h="60">Vinson Massif</button>
-      <button data-ll="15.6,78.2" data-r="60000" data-p="-30" data-h="30">Svalbard</button>
-      <button data-ll="-112.11,36.10" data-r="9000" data-p="-25" data-h="60">Grand Canyon</button>
-      <button data-ll="86.92,27.99" data-r="16000" data-p="-20" data-h="150">Everest</button>
-      <button data-ll="7.66,45.98" data-r="9000" data-p="-22" data-h="250">Matterhorn</button>
-      <button data-ll="-40,20" data-r="16000000" data-p="-88" data-h="0">Whole Earth</button>
-    </div>
-  </div>
-
-  <div class="note">
-    United States: USGS 3DEP relief, switching to 1 m LiDAR up close. Arctic: ArcticDEM (2 m). Antarctica: AntarcticDEM / REMA (8 m). Rest of world: Esri World Hillshade. Imagery: Esri World Imagery, with NASA Blue Marble filling the polar caps.
+  <!-- SPOTS -->
+  <div class="body" id="p-spots" role="tabpanel" hidden>
+    <div class="hint">Spots are saved in this browser on this device.</div>
+    <div id="spotList" class="splist"></div>
   </div>
 </aside>
 
@@ -129,242 +314,478 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
   <span class="k">Lon</span><div id="rlon">—</div>
   <span class="k">Elev</span><div id="rel">—</div>
   <span class="k">Alt</span><div id="ralt">—</div>
-  <div class="src" id="rsrc"></div>
 </div>
 <div id="err" hidden></div>
 
 <script>
 function showErr(m){const e=document.getElementById("err");e.hidden=false;e.textContent+=(e.textContent?"\n\n":"")+m;}
-window.addEventListener("error",ev=>showErr("Error: "+(ev.message||"unknown")+(ev.filename?"\n"+ev.filename+":"+ev.lineno:"")));
-window.addEventListener("unhandledrejection",ev=>showErr("Error: "+(ev.reason&&ev.reason.message||ev.reason)));
+window.addEventListener("error",ev=>{if(!ev.message)return;showErr("Error: "+ev.message+(ev.filename?"\n"+ev.filename+":"+ev.lineno:""));});
 window.CESIUM_BASE_URL="https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium/";
 </script>
+<script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium/Cesium.js"></script>
 <script>
 (function(){
-  const panel=document.getElementById("panel"),btn=document.getElementById("hide"),mq=matchMedia("(max-width:640px)");
-  function arrow(){ // desktop: chevron points up to hide; phone: points down to hide
-    btn.querySelector("svg").style.rotate=mq.matches?"180deg":"0deg";}
-  function set(c,save){panel.classList.toggle("collapsed",c);btn.setAttribute("aria-expanded",!c);
-    btn.setAttribute("aria-label",c?"Show menu":"Hide menu");if(save)try{localStorage.setItem("menuCollapsed",c?"1":"0")}catch(_){}}
-  let saved=null;try{saved=localStorage.getItem("menuCollapsed")}catch(_){}
-  set(saved==="1",false);arrow();mq.addEventListener("change",arrow);
-  btn.addEventListener("click",()=>set(!panel.classList.contains("collapsed"),true));
-})();
-(function(){
-if(!window.Cesium){showErr("The globe engine didn't load. Open this page in Safari or Chrome with internet access.");return;}
-const C=Cesium, $=id=>document.getElementById(id);
+if(!window.Cesium||!window.SunCalc){showErr("Part of the app didn't load. Open this page in Safari or Chrome with internet access.");return;}
+const C=Cesium,$=id=>document.getElementById(id);
 C.Ion.defaultAccessToken="";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(_){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(_){}}};
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/* ---------- sources ---------- */
+/* ================= panel, tabs ================= */
+const panel=$("panel"),hideBtn=$("hide"),mq=matchMedia("(max-width:640px)");
+function arrow(){hideBtn.querySelector("svg").style.rotate=mq.matches?"180deg":"0deg";}
+function collapse(c,save){panel.classList.toggle("collapsed",c);hideBtn.setAttribute("aria-expanded",!c);hideBtn.setAttribute("aria-label",c?"Show menu":"Hide menu");if(save)store.set("wl.collapsed",c);}
+collapse(store.get("wl.collapsed",false),false);arrow();mq.addEventListener("change",arrow);
+hideBtn.addEventListener("click",()=>collapse(!panel.classList.contains("collapsed"),true));
+function tab(name){
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===name));
+  ["explore","scout","spots"].forEach(n=>$("p-"+n).hidden=n!==name);
+}
+document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b)tab(b.dataset.tab);});
+
+/* ================= data sources ================= */
 const TERRARIUM="https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
 const USGS_IS="https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage";
 const ARCTIC_IS="https://elevation2.arcgis.com/arcgis/rest/services/Polar/ArcticDEM/ImageServer/exportImage";
 const ANTARC_IS="https://elevation2.arcgis.com/arcgis/rest/services/Polar/AntarcticDEM/ImageServer/exportImage";
-const FN={
-  usgs:  {hs:"Hillshade Multidirectional",tint:"Hillshade Elevation Tinted",slope:"Slope Map",contour:"Contour Smoothed 25"},
-  arctic:{hs:"Hillshade Multidirectional",tint:"Hillshade Elevation Tinted",slope:"Slope Map",contour:"Contour Smoothed 25"},
-  antarc:{hs:"Hillshade Multidirectional",tint:"Hillshade Elevation Tinted",slope:"Slope Degrees Map",contour:"Smooth Contour 25"}
-};
+const INAT="https://api.inaturalist.org/v1/";
 const US_RECT=C.Rectangle.fromDegrees(-179.9,17.5,-64.5,71.5);
 const ARCTIC_RECT=C.Rectangle.fromDegrees(-180,59.5,180,90);
 const ANTARC_RECT=C.Rectangle.fromDegrees(-180,-90,180,-59.5);
-
 const blank=document.createElement("canvas");blank.width=blank.height=1;
 
-/* ImageServer exportImage as tiles. Levels below minLevel return transparent tiles. */
 function imageServer(url,fn,{rect,minLevel=0,maxLevel=19,mercator=false,credit}){
   const rule=encodeURIComponent(JSON.stringify({rasterFunction:fn}));
   const bbox=mercator?"{westProjected},{southProjected},{eastProjected},{northProjected}&bboxSR=3857&imageSR=3857"
                      :"{westDegrees},{southDegrees},{eastDegrees},{northDegrees}&bboxSR=4326&imageSR=4326";
-  const p=new C.UrlTemplateImageryProvider({
-    url:url+"?f=image&format=png32&transparent=true&size=256,256&renderingRule="+rule+"&bbox="+bbox,
-    tilingScheme:mercator?new C.WebMercatorTilingScheme():new C.GeographicTilingScheme(),
-    rectangle:rect,maximumLevel:maxLevel,hasAlphaChannel:true,credit
-  });
-  if(minLevel>0){const orig=p.requestImage.bind(p);p.requestImage=(x,y,l,r)=>l<minLevel?Promise.resolve(blank):orig(x,y,l,r);}
+  const p=new C.UrlTemplateImageryProvider({url:url+"?f=image&format=png32&transparent=true&size=256,256&renderingRule="+rule+"&bbox="+bbox,
+    tilingScheme:mercator?new C.WebMercatorTilingScheme():new C.GeographicTilingScheme(),rectangle:rect,maximumLevel:maxLevel,hasAlphaChannel:true,credit});
+  if(minLevel>0){const o=p.requestImage.bind(p);p.requestImage=(x,y,l,r)=>l<minLevel?Promise.resolve(blank):o(x,y,l,r);}
   return p;
 }
-function xyz(url,opts={}){return new C.UrlTemplateImageryProvider(Object.assign({url,maximumLevel:19},opts));}
+const xyz=(url,opts={})=>new C.UrlTemplateImageryProvider(Object.assign({url,maximumLevel:19},opts));
 
-/* ---------- terrain from Terrarium tiles (clamped beyond ±85°) ---------- */
+/* iNaturalist requests: small queue to stay polite with their rate limit */
+const inatCache=new Map();let inatActive=0;const inatQ=[];
+function inat(path,params){
+  const u=INAT+path+"?"+new URLSearchParams(Object.entries(params).filter(([,v])=>v!==""&&v!=null)).toString();
+  if(inatCache.has(u))return inatCache.get(u);
+  const p=new Promise((res,rej)=>{inatQ.push({u,res,rej});pump();});
+  inatCache.set(u,p);p.catch(()=>inatCache.delete(u));return p;
+}
+function pump(){
+  while(inatActive<2&&inatQ.length){const {u,res,rej}=inatQ.shift();inatActive++;
+    fetch(u).then(r=>{if(!r.ok)throw new Error("iNaturalist returned "+r.status);return r.json();}).then(res,rej)
+      .finally(()=>{setTimeout(()=>{inatActive--;pump();},250);});}
+}
+
+/* ================= terrain (Terrarium, clamped beyond ±85°) ================= */
 const tileCache=new Map();
 function terrTile(z,x,y){
   const k=z+"/"+x+"/"+y;
   if(!tileCache.has(k)){
     if(tileCache.size>600)tileCache.delete(tileCache.keys().next().value);
-    tileCache.set(k,new Promise(res=>{
-      const img=new Image();img.crossOrigin="anonymous";
-      img.onload=()=>{const c=document.createElement("canvas");c.width=c.height=256;const g=c.getContext("2d",{willReadFrequently:true});
-        g.drawImage(img,0,0);try{res(g.getImageData(0,0,256,256).data)}catch(_){res(null)}};
-      img.onerror=()=>res(null);
-      img.src=TERRARIUM.replace("{z}",z).replace("{x}",x).replace("{y}",y);
-    }));
+    tileCache.set(k,new Promise(res=>{const img=new Image();img.crossOrigin="anonymous";
+      img.onload=()=>{const c=document.createElement("canvas");c.width=c.height=256;const g=c.getContext("2d",{willReadFrequently:true});g.drawImage(img,0,0);try{res(g.getImageData(0,0,256,256).data)}catch(_){res(null)}};
+      img.onerror=()=>res(null);img.src=TERRARIUM.replace("{z}",z).replace("{x}",x).replace("{y}",y);}));
   }
   return tileCache.get(k);
 }
-function merc(lon,lat,z){
-  const n=2**z,la=Math.max(-85,Math.min(85,lat))*Math.PI/180;
-  return [((lon+180)/360)*n,(1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2*n];
-}
-function readPx(d,fx,fy){
-  const px=Math.min(255,Math.max(0,Math.floor(fx*256))),py=Math.min(255,Math.max(0,Math.floor(fy*256))),i=(py*256+px)*4;
-  return d[i]*256+d[i+1]+d[i+2]/256-32768;
-}
-async function heightAt(lon,lat,z){
-  const n=2**z,[fx,fy]=merc(lon,lat,z),x=Math.floor(fx),y=Math.max(0,Math.min(n-1,Math.floor(fy)));
-  const d=await terrTile(z,((x%n)+n)%n,y);
-  return d?readPx(d,fx-x,fy-y):null;
-}
+function merc(lon,lat,z){const n=2**z,la=Math.max(-85,Math.min(85,lat))*Math.PI/180;return [((lon+180)/360)*n,(1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2*n];}
+function readPx(d,fx,fy){const px=Math.min(255,Math.max(0,Math.floor(fx*256))),py=Math.min(255,Math.max(0,Math.floor(fy*256))),i=(py*256+px)*4;return d[i]*256+d[i+1]+d[i+2]/256-32768;}
+async function heightAt(lon,lat,z){const n=2**z,[fx,fy]=merc(lon,lat,z),x=Math.floor(fx),y=Math.max(0,Math.min(n-1,Math.floor(fy)));const d=await terrTile(z,((x%n)+n)%n,y);return d?readPx(d,fx-x,fy-y):null;}
 const TW=33;
-const terrain=new C.CustomHeightmapTerrainProvider({
-  width:TW,height:TW,
-  callback:async(x,y,level)=>{
-    const rect=terrain.tilingScheme.tileXYToRectangle(x,y,level);
-    const w=C.Math.toDegrees(rect.west),e=C.Math.toDegrees(rect.east),s=C.Math.toDegrees(rect.south),nn=C.Math.toDegrees(rect.north);
-    const z=Math.max(0,Math.min(13,level-1)),n=2**z;
-    const out=new Float32Array(TW*TW),need=new Map(),pts=[];
-    for(let j=0;j<TW;j++){const lat=nn-(nn-s)*j/(TW-1);
-      for(let i=0;i<TW;i++){const lon=w+(e-w)*i/(TW-1);
-        const [fx,fy]=merc(lon,lat,z),tx=((Math.floor(fx)%n)+n)%n,ty=Math.max(0,Math.min(n-1,Math.floor(fy)));
-        const k=tx+","+ty;if(!need.has(k))need.set(k,terrTile(z,tx,ty));
-        pts.push([k,fx-Math.floor(fx),fy-Math.floor(fy)]);}}
-    const keys=[...need.keys()],datas=await Promise.all(need.values()),lut=new Map(keys.map((k,i)=>[k,datas[i]]));
-    for(let i=0;i<pts.length;i++){const [k,u,v]=pts[i],d=lut.get(k);out[i]=d?Math.max(0,readPx(d,u,Math.min(.999,Math.max(0,v)))):0;}
-    return out;
-  }
-});
+const terrain=new C.CustomHeightmapTerrainProvider({width:TW,height:TW,callback:async(x,y,level)=>{
+  const r=terrain.tilingScheme.tileXYToRectangle(x,y,level),w=C.Math.toDegrees(r.west),e=C.Math.toDegrees(r.east),s=C.Math.toDegrees(r.south),nn=C.Math.toDegrees(r.north);
+  const z=Math.max(0,Math.min(13,level-1)),n=2**z,out=new Float32Array(TW*TW),need=new Map(),pts=[];
+  for(let j=0;j<TW;j++){const lat=nn-(nn-s)*j/(TW-1);for(let i=0;i<TW;i++){const lon=w+(e-w)*i/(TW-1);
+    const [fx,fy]=merc(lon,lat,z),tx=((Math.floor(fx)%n)+n)%n,ty=Math.max(0,Math.min(n-1,Math.floor(fy))),k=tx+","+ty;
+    if(!need.has(k))need.set(k,terrTile(z,tx,ty));pts.push([k,fx-Math.floor(fx),fy-Math.floor(fy)]);}}
+  const keys=[...need.keys()],ds=await Promise.all(need.values()),lut=new Map(keys.map((k,i)=>[k,ds[i]]));
+  for(let i=0;i<pts.length;i++){const [k,u,v]=pts[i],d=lut.get(k);out[i]=d?Math.max(0,readPx(d,u,Math.min(.999,Math.max(0,v)))):0;}
+  return out;}});
 
-/* ---------- viewer ---------- */
-const viewer=new C.Viewer("map",{
-  baseLayer:false,terrainProvider:terrain,
-  geocoder:false,baseLayerPicker:false,homeButton:false,sceneModePicker:false,navigationHelpButton:false,
-  animation:false,timeline:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,
-  requestRenderMode:true,maximumRenderTimeChange:Infinity,useBrowserRecommendedResolution:false
-});
+/* ================= viewer ================= */
+const viewer=new C.Viewer("map",{baseLayer:false,terrainProvider:terrain,geocoder:false,baseLayerPicker:false,homeButton:false,sceneModePicker:false,
+  navigationHelpButton:false,animation:false,timeline:false,fullscreenButton:false,infoBox:false,selectionIndicator:false,
+  requestRenderMode:true,maximumRenderTimeChange:Infinity,useBrowserRecommendedResolution:false,shouldAnimate:false});
 const dpr=window.devicePixelRatio||1;viewer.resolutionScale=Math.min(dpr,2)/dpr;
-const scene=viewer.scene,globe=scene.globe;
-globe.baseColor=C.Color.fromCssColorString("#0b1416");
-globe.maximumScreenSpaceError=1.6;
-globe.tileCacheSize=400;
-globe.showGroundAtmosphere=true;
-scene.verticalExaggeration=1.5;
-scene.fog.enabled=true;
-scene.screenSpaceCameraController.minimumZoomDistance=150;
-scene.backgroundColor=C.Color.fromCssColorString("#030506");
-viewer.cesiumWidget.creditContainer.style.display="";
+const scene=viewer.scene,globe=scene.globe,L=viewer.imageryLayers;
+globe.baseColor=C.Color.fromCssColorString("#0b1416");globe.maximumScreenSpaceError=1.6;globe.tileCacheSize=400;
+globe.depthTestAgainstTerrain=false;
+scene.verticalExaggeration=1.5;scene.backgroundColor=C.Color.fromCssColorString("#030506");
+scene.screenSpaceCameraController.minimumZoomDistance=120;
+scene.shadowMap.softShadows=true;scene.shadowMap.maximumDistance=40000;scene.shadowMap.darkness=.35;
 
-const L=viewer.imageryLayers;
-const add=(p,opts={})=>{const l=L.addImageryProvider(p);Object.assign(l,opts);return l;};
+const marble=L.addImageryProvider(new C.WebMapServiceImageryProvider({url:"https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi",layers:"BlueMarble_NextGeneration",
+  parameters:{format:"image/jpeg",transparent:false},tilingScheme:new C.GeographicTilingScheme(),maximumLevel:8,credit:"Blue Marble: NASA GIBS"}));
+const esri=L.addImageryProvider(xyz("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{credit:"Imagery © Esri, Maxar, Earthstar Geographics"}));
 
-// Satellite: Blue Marble (geographic, covers the poles) under Esri World Imagery (to ±85°)
-const marble=add(new C.WebMapServiceImageryProvider({
-  url:"https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi",
-  layers:"BlueMarble_NextGeneration",
-  parameters:{format:"image/jpeg",transparent:false},
-  tilingScheme:new C.GeographicTilingScheme(),maximumLevel:8,tileWidth:256,tileHeight:256,
-  credit:"Blue Marble: NASA Earth Observatory / GIBS"
-}));
-const esri=add(xyz("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  {credit:"Imagery © Esri, Maxar, Earthstar Geographics"}));
-
-// Relief layers (rebuilt when style changes)
-let style="hs",mixVal=.6,relief=[];
-const worldShade=()=>xyz("https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}",
-  {maximumLevel:16,credit:"Hillshade © Esri"});
+/* relief */
+let mixVal=.25,relief=[];
 function buildRelief(){
-  relief.forEach(l=>L.remove(l,true));relief=[];
-  const idx=L.indexOf(esri)+1;
-  const put=(p)=>{const l=L.addImageryProvider(p,idx+relief.length);relief.push(l);return l;};
-  put(worldShade());
-  if(style==="hs"){
-    put(xyz("https://basemap.nationalmap.gov/arcgis/rest/services/USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}",
-      {rectangle:US_RECT,maximumLevel:16,credit:"Relief: USGS 3D Elevation Program"}));
-    put(imageServer(USGS_IS,FN.usgs.hs,{rect:US_RECT,minLevel:16,mercator:true}));
-  }else{
-    put(imageServer(USGS_IS,FN.usgs[style],{rect:US_RECT,minLevel:8,mercator:true,credit:"Relief: USGS 3D Elevation Program"}));
-  }
-  put(imageServer(ARCTIC_IS,FN.arctic[style],{rect:ARCTIC_RECT,maxLevel:17,credit:"ArcticDEM: Polar Geospatial Center"}));
-  put(imageServer(ANTARC_IS,FN.antarc[style],{rect:ANTARC_RECT,maxLevel:16,credit:"AntarcticDEM / REMA: Polar Geospatial Center"}));
+  const idx=L.indexOf(esri)+1,put=p=>{const l=L.addImageryProvider(p,idx+relief.length);relief.push(l);};
+  put(xyz("https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}",{maximumLevel:16,credit:"Hillshade © Esri"}));
+  put(xyz("https://basemap.nationalmap.gov/arcgis/rest/services/USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}",{rectangle:US_RECT,maximumLevel:16,credit:"Relief: USGS 3DEP"}));
+  put(imageServer(USGS_IS,"Hillshade Multidirectional",{rect:US_RECT,minLevel:16,mercator:true}));
+  put(imageServer(ARCTIC_IS,"Hillshade Multidirectional",{rect:ARCTIC_RECT,maxLevel:17,credit:"ArcticDEM: PGC"}));
+  put(imageServer(ANTARC_IS,"Hillshade Multidirectional",{rect:ANTARC_RECT,maxLevel:16,credit:"AntarcticDEM: PGC"}));
   applyMix();
 }
-// Contours and labels sit on top
-let contourLayers=[];
-function setContours(on){
-  contourLayers.forEach(l=>L.remove(l,true));contourLayers=[];
-  if(!on){scene.requestRender();return;}
-  contourLayers=[
-    add(imageServer(USGS_IS,FN.usgs.contour,{rect:US_RECT,minLevel:13,mercator:true})),
-    add(imageServer(ARCTIC_IS,FN.arctic.contour,{rect:ARCTIC_RECT,minLevel:10})),
-    add(imageServer(ANTARC_IS,FN.antarc.contour,{rect:ANTARC_RECT,minLevel:10}))
-  ];
-  if(labelLayer)L.raiseToTop(labelLayer);
-}
-let labelLayer=null;
-function setLabels(on){
-  if(labelLayer){L.remove(labelLayer,true);labelLayer=null;}
-  if(on)labelLayer=add(xyz("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"));
-  scene.requestRender();
-}
-function applyMix(){
-  relief.forEach(l=>l.alpha=mixVal);
-  esri.show=marble.show=mixVal<.999;
-  $("mixv").textContent=Math.round(mixVal*100)+"%";
-  scene.requestRender();
-}
+function applyMix(){relief.forEach(l=>{l.alpha=mixVal;l.show=mixVal>0.01;});esri.show=marble.show=mixVal<.999;$("mixv").textContent=Math.round(mixVal*100)+"%";scene.requestRender();}
 buildRelief();
 
-/* ---------- controls ---------- */
+/* ================= wildlife filter state & sightings layer ================= */
+const now=new Date();
+const F={taxon:1,species:null,month:now.getMonth()+1,rg:true,opacity:.85,show:true};
+const ms=$("month");ms.innerHTML='<option value="0">All year</option>'+MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("");
+ms.value=String(F.month);
+function obsParams(extra={}){
+  const p={taxon_id:F.species?F.species.id:F.taxon,month:F.month||"",...extra};
+  if(F.rg)p.quality_grade="research";else p.verifiable="true";
+  return p;
+}
+let sightLayer=null,labelLayer=null,contourLayers=[];
+function buildSightings(){
+  if(sightLayer){L.remove(sightLayer,true);sightLayer=null;}
+  if(F.show){
+    const q=new URLSearchParams(Object.entries(obsParams()).filter(([,v])=>v!=="")).toString();
+    const prov=new C.UrlTemplateImageryProvider({url:INAT+"{kind}/{z}/{x}/{y}.png?"+q,maximumLevel:16,hasAlphaChannel:true,
+      customTags:{kind:(p,x,y,l)=>l<9?"colored_heatmap":"points"},credit:"Sightings: iNaturalist contributors"});
+    sightLayer=L.addImageryProvider(prov);sightLayer.alpha=F.opacity;
+  }
+  contourLayers.forEach(l=>L.raiseToTop(l));if(labelLayer)L.raiseToTop(labelLayer);
+  scene.requestRender();
+}
+buildSightings();
+
+$("groups").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  $("groups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));F.taxon=+b.dataset.t;filtersChanged();});
+ms.addEventListener("change",()=>{F.month=+ms.value;filtersChanged();});
+$("rg").addEventListener("change",e=>{F.rg=e.target.checked;filtersChanged();});
+$("sightOn").addEventListener("change",e=>{F.show=e.target.checked;buildSightings();});
+$("sop").addEventListener("input",e=>{F.opacity=e.target.value/100;$("sopv").textContent=e.target.value+"%";if(sightLayer){sightLayer.alpha=F.opacity;scene.requestRender();}});
+function filtersChanged(){buildSightings();if(pin)loadNearby();}
+
+/* species search */
+let qT=0;
+$("q").addEventListener("input",e=>{clearTimeout(qT);const v=e.target.value.trim();if(v.length<2){$("qres").hidden=true;return;}qT=setTimeout(()=>searchSp(v),300);});
+$("q").addEventListener("keydown",e=>{if(e.key==="Escape")$("qres").hidden=true;});
+document.addEventListener("click",e=>{if(!e.target.closest(".search"))$("qres").hidden=true;});
+async function searchSp(v){
+  const box=$("qres");box.hidden=false;box.innerHTML='<div class="hint skel" style="padding:8px">Searching…</div>';
+  try{const r=await inat("taxa/autocomplete",{q:v,per_page:8,is_active:"true",taxon_id:1});
+    const list=(r.results||[]).filter(t=>t.rank_level<=20||t.rank==="species");
+    if(!list.length){box.innerHTML='<div class="hint" style="padding:8px">No animals match that name.</div>';return;}
+    box.innerHTML="";list.forEach(t=>{const b=document.createElement("button");
+      b.innerHTML=`<img alt="" src="${esc(t.default_photo?.square_url||"")}"><span class="nm"><b>${esc(t.preferred_common_name||t.name)}</b><i>${esc(t.name)} · ${(t.observations_count||0).toLocaleString()} obs</i></span>`;
+      b.addEventListener("click",()=>{pickSpecies(t);box.hidden=true;$("q").value="";});box.appendChild(b);});
+  }catch(err){box.innerHTML=`<div class="hint" style="padding:8px">Search failed: ${esc(err.message)}. Try again in a moment.</div>`;}
+}
+function pickSpecies(t){
+  F.species=t?{id:t.id,name:t.preferred_common_name||t.name,sci:t.name,photo:t.default_photo?.square_url||""}:null;
+  const box=$("pickedBox");
+  if(!F.species){box.innerHTML="";}
+  else{box.innerHTML=`<div class="picked"><img alt="" src="${esc(F.species.photo)}"><span class="nm"><b>${esc(F.species.name)}</b><i>Showing only this species</i></span><button class="x" aria-label="Clear species">✕</button></div>`;
+    box.querySelector(".x").addEventListener("click",()=>pickSpecies(null));}
+  filtersChanged();
+}
+
+/* map toggles */
 $("mix").addEventListener("input",e=>{mixVal=e.target.value/100;applyMix();});
-$("style").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  $("style").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));style=b.dataset.v;buildRelief();});
-$("ex").addEventListener("input",e=>{const v=e.target.value/10;$("exv").textContent=v.toFixed(1)+"×";scene.verticalExaggeration=Math.max(v,0.0001);scene.requestRender();});
-$("contours").addEventListener("change",e=>setContours(e.target.checked));
-$("labels").addEventListener("change",e=>setLabels(e.target.checked));
+$("ex").addEventListener("input",e=>{const v=e.target.value/10;$("exv").textContent=v.toFixed(1)+"×";scene.verticalExaggeration=Math.max(v,.0001);scene.requestRender();});
+$("labels").addEventListener("change",e=>{if(labelLayer){L.remove(labelLayer,true);labelLayer=null;}
+  if(e.target.checked)labelLayer=L.addImageryProvider(xyz("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"));scene.requestRender();});
+$("contours").addEventListener("change",e=>{contourLayers.forEach(l=>L.remove(l,true));contourLayers=[];
+  if(e.target.checked)contourLayers=[
+    L.addImageryProvider(imageServer(USGS_IS,"Contour Smoothed 25",{rect:US_RECT,minLevel:13,mercator:true})),
+    L.addImageryProvider(imageServer(ARCTIC_IS,"Contour Smoothed 25",{rect:ARCTIC_RECT,minLevel:10})),
+    L.addImageryProvider(imageServer(ANTARC_IS,"Smooth Contour 25",{rect:ANTARC_RECT,minLevel:10}))];
+  if(labelLayer)L.raiseToTop(labelLayer);scene.requestRender();});
 
-const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-$("fly").addEventListener("click",async e=>{
-  const b=e.target.closest("button");if(!b)return;
-  const [lon,lat]=b.dataset.ll.split(",").map(Number),range=+b.dataset.r;
-  let h=0;if(range<200000&&Math.abs(lat)<85){h=(await heightAt(lon,lat,12))||0;}
-  const target=C.Cartesian3.fromDegrees(lon,lat,Math.max(0,h)*scene.verticalExaggeration);
-  viewer.camera.flyToBoundingSphere(new C.BoundingSphere(target,0),{
-    offset:new C.HeadingPitchRange(C.Math.toRadians(+b.dataset.h),C.Math.toRadians(+b.dataset.p),range),
-    duration:reduce?0:4.5});
+/* ================= light: sun & moon ================= */
+SunCalc.addTime(-4,"blueEndAM","blueStartPM");
+const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const S={date:ymd(now),off:-now.getTimezoneOffset()*60,offExact:true,min:now.getHours()*60+now.getMinutes()};
+function utcAt(dateStr,minutes,off){const [y,m,d]=dateStr.split("-").map(Number);return new Date(Date.UTC(y,m-1,d)+minutes*60000-off*1000);}
+const ok=d=>d instanceof Date&&!isNaN(d);
+function fmtT(d,off){if(!ok(d))return "—";const x=new Date(d.getTime()+off*1000);let h=x.getUTCHours();const m=x.getUTCMinutes(),ap=h<12?"AM":"PM";h=h%12||12;return h+":"+String(m).padStart(2,"0")+" "+ap;}
+function minOf(d,off){const x=new Date(d.getTime()+off*1000);return x.getUTCHours()*60+x.getUTCMinutes();}
+const COMPASS=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const bearingOf=(d,lat,lng)=>((SunCalc.getPosition(d,lat,lng).azimuth*180/Math.PI)+180+360)%360;
+const compass=b=>COMPASS[Math.round(b/22.5)%16];
+function lightFor(lat,lng){const t=SunCalc.getTimes(utcAt(S.date,720,S.off),lat,lng);return t;}
+function moonFor(lat,lng){
+  const start=utcAt(S.date,0,S.off).getTime();let rise=null,set=null,prev=SunCalc.getMoonPosition(new Date(start),lat,lng).altitude;
+  for(let i=1;i<=144;i++){const t=start+i*600000,a=SunCalc.getMoonPosition(new Date(t),lat,lng).altitude;
+    if(prev<0&&a>=0&&!rise)rise=new Date(t);if(prev>=0&&a<0&&!set)set=new Date(t);prev=a;}
+  const il=SunCalc.getMoonIllumination(utcAt(S.date,1260,S.off)),ph=il.phase;
+  const name=ph<.03||ph>.97?"New moon":ph<.22?"Waxing crescent":ph<.28?"First quarter":ph<.47?"Waxing gibbous":ph<.53?"Full moon":ph<.72?"Waning gibbous":ph<.78?"Last quarter":"Waning crescent";
+  return {rise,set,pct:Math.round(il.fraction*100),name};
+}
+function lightCenter(){
+  if(pin)return pin;
+  const c=globe.pick(viewer.camera.getPickRay(new C.Cartesian2(scene.canvas.clientWidth/2,scene.canvas.clientHeight/2)),scene);
+  if(!c)return null;const g=C.Cartographic.fromCartesian(c);return {lat:C.Math.toDegrees(g.latitude),lng:C.Math.toDegrees(g.longitude)};
+}
+function guessOffset(lng){return Math.round(lng/15)*3600;}
+
+/* time slider + real sun */
+$("date").value=$("date2").value=S.date;
+function setDate(v){if(!v)return;S.date=v;$("date").value=$("date2").value=v;refreshLight();if(pin){renderLight();renderFcSel();}}
+$("date").addEventListener("change",e=>setDate(e.target.value));
+$("date2").addEventListener("change",e=>setDate(e.target.value));
+function shiftDay(n){const [y,m,d]=S.date.split("-").map(Number);const t=new Date(y,m-1,d+n);setDate(ymd(t));}
+$("dPrev").addEventListener("click",()=>shiftDay(-1));$("dNext").addEventListener("click",()=>shiftDay(1));
+$("time").value=S.min;
+$("time").addEventListener("input",e=>{S.min=+e.target.value;refreshLight();});
+$("timeJump").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const c=lightCenter();if(!c)return;
+  const t=lightFor(c.lat,c.lng),map={blueAM:t.dawn,sunrise:t.sunrise,noon:t.solarNoon,goldPM:t.goldenHour,sunset:t.sunset};
+  const d=map[b.dataset.j];if(!ok(d))return;S.min=minOf(d,S.off);$("time").value=S.min;refreshLight();});
+$("sunOn").addEventListener("change",e=>{globe.enableLighting=e.target.checked;refreshLight();});
+$("shadows").addEventListener("change",e=>{viewer.shadows=e.target.checked;viewer.terrainShadows=e.target.checked?C.ShadowMode.ENABLED:C.ShadowMode.DISABLED;
+  if(e.target.checked&&!$("sunOn").checked){$("sunOn").checked=true;globe.enableLighting=true;}refreshLight();});
+function refreshLight(){
+  const when=utcAt(S.date,S.min,S.off);viewer.clock.currentTime=C.JulianDate.fromDate(when);
+  const c=lightCenter();let extra="";
+  if(c){const p=SunCalc.getPosition(when,c.lat,c.lng),alt=p.altitude*180/Math.PI,b=bearingOf(when,c.lat,c.lng);
+    extra=alt>1?` · sun ${Math.round(alt)}° high, ${compass(b)}`:alt>-1.2?` · sun on the horizon, ${compass(b)}`:alt>-6?" · twilight":" · dark";}
+  $("timev").textContent=fmtT(when,S.off)+extra;
+  drawSunNow();scene.requestRender();
+}
+
+/* ================= pin & rays ================= */
+let pin=null;const pinEnts=[];
+function destPt(lat,lng,brg,dist){const R=6371000,d=dist/R,b=brg*Math.PI/180,p1=lat*Math.PI/180,l1=lng*Math.PI/180;
+  const p2=Math.asin(Math.sin(p1)*Math.cos(d)+Math.cos(p1)*Math.sin(d)*Math.cos(b));
+  const l2=l1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(p1),Math.cos(d)-Math.sin(p1)*Math.sin(p2));return [l2*180/Math.PI,p2*180/Math.PI];}
+function rayLen(){const a=viewer.camera.positionCartographic.height;return Math.min(40000,Math.max(400,a*.25));}
+function ray(lat,lng,brg,color,text,len){
+  const [l2,a2]=destPt(lat,lng,brg,len);
+  pinEnts.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray([lng,lat,l2,a2]),width:3,clampToGround:true,
+    material:new C.PolylineDashMaterialProperty({color,dashLength:14})}}));
+  if(text)pinEnts.push(viewer.entities.add({position:C.Cartesian3.fromDegrees(l2,a2),label:{text,font:"600 12px JetBrains Mono, monospace",fillColor:color,
+    outlineColor:C.Color.BLACK,outlineWidth:3,style:C.LabelStyle.FILL_AND_OUTLINE,heightReference:C.HeightReference.CLAMP_TO_GROUND,
+    disableDepthTestDistance:Number.POSITIVE_INFINITY,pixelOffset:new C.Cartesian2(0,-8),distanceDisplayCondition:new C.DistanceDisplayCondition(0,len*14)}}));
+}
+let sunNowEnt=[];
+function drawSunNow(){
+  sunNowEnt.forEach(e=>viewer.entities.remove(e));sunNowEnt=[];if(!pin)return;
+  const when=utcAt(S.date,S.min,S.off),p=SunCalc.getPosition(when,pin.lat,pin.lng);if(p.altitude<-0.014)return;
+  const b=bearingOf(when,pin.lat,pin.lng),[l2,a2]=destPt(pin.lat,pin.lng,b,pin.len*.8);
+  sunNowEnt.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray([pin.lng,pin.lat,l2,a2]),width:4,clampToGround:true,
+    material:new C.PolylineGlowMaterialProperty({color:C.Color.fromCssColorString("#fff2c4"),glowPower:.25})}}));
+}
+function drawPin(){
+  pinEnts.forEach(e=>viewer.entities.remove(e));pinEnts.length=0;if(!pin)return;
+  pinEnts.push(viewer.entities.add({position:C.Cartesian3.fromDegrees(pin.lng,pin.lat),point:{pixelSize:13,color:C.Color.fromCssColorString("#f2b84b"),
+    outlineColor:C.Color.fromCssColorString("#060908"),outlineWidth:3,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}}));
+  const t=lightFor(pin.lat,pin.lng);
+  if(ok(t.sunrise))ray(pin.lat,pin.lng,bearingOf(t.sunrise,pin.lat,pin.lng),C.Color.fromCssColorString("#f2b84b"),"Sunrise "+fmtT(t.sunrise,S.off),pin.len);
+  if(ok(t.sunset))ray(pin.lat,pin.lng,bearingOf(t.sunset,pin.lat,pin.lng),C.Color.fromCssColorString("#ff8a5c"),"Sunset "+fmtT(t.sunset,S.off),pin.len);
+  drawSunNow();scene.requestRender();
+}
+
+/* ================= scout ================= */
+let scoutSeq=0,fcData=null;
+async function scout(lat,lng,name){
+  pin={lat,lng,len:rayLen(),name:name||""};const my=++scoutSeq;
+  S.off=guessOffset(lng);S.offExact=false;
+  $("scoutEmpty").hidden=true;$("scoutBody").hidden=false;$("spDetail").hidden=true;
+  $("pinLL").textContent=lat.toFixed(5)+", "+lng.toFixed(5);
+  $("mapsLink").href="https://www.google.com/maps/dir/?api=1&destination="+lat.toFixed(6)+","+lng.toFixed(6);
+  $("spotName").value=name||"";$("pinElev").textContent="";
+  tab("scout");collapse(false,false);
+  drawPin();renderLight();refreshLight();
+  $("fc").innerHTML='<div class="skel" style="grid-column:1/-1">Loading forecast…</div>';$("fcNote").textContent="";
+  loadNearby();
+  heightAt(lng,lat,13).then(h=>{if(my===scoutSeq&&h!=null&&Math.abs(lat)<=85)$("pinElev").textContent=Math.round(h).toLocaleString()+" m · "+Math.round(h*3.28084).toLocaleString()+" ft";});
+  try{
+    const u="https://api.open-meteo.com/v1/forecast?"+new URLSearchParams({latitude:lat.toFixed(4),longitude:lng.toFixed(4),timezone:"auto",forecast_days:7,
+      hourly:"cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation_probability",
+      daily:"sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max",temperature_unit:"fahrenheit"});
+    const r=await fetch(u);if(!r.ok)throw new Error("forecast service returned "+r.status);const j=await r.json();if(my!==scoutSeq)return;
+    S.off=j.utc_offset_seconds;S.offExact=true;fcData=j;
+    renderLight();drawPin();refreshLight();renderFc();
+  }catch(err){if(my!==scoutSeq)return;$("fc").innerHTML=`<div class="hint" style="grid-column:1/-1">Sky forecast unavailable: ${esc(err.message)}.</div>`;}
+}
+function renderLight(){
+  if(!pin)return;const t=lightFor(pin.lat,pin.lng),m=moonFor(pin.lat,pin.lng),o=S.off;
+  const row=(k,cls,from,to,azD)=>`<span class="k ${cls}">${k}</span><span>${from}${to?" – "+to:""}</span><span class="az">${azD||""}</span>`;
+  const az=d=>ok(d)?Math.round(bearingOf(d,pin.lat,pin.lng))+"° "+compass(bearingOf(d,pin.lat,pin.lng)):"";
+  let h="";
+  if(!ok(t.sunrise)&&!ok(t.sunset)){
+    const up=SunCalc.getPosition(t.solarNoon,pin.lat,pin.lng).altitude>0;
+    h+=`<span class="k gold">Sun</span><span>${up?"Up all day (midnight sun)":"Below the horizon all day (polar night)"}</span><span></span>`;
+    if(!up&&ok(t.dawn))h+=row("Twilight","blue",fmtT(t.dawn,o),fmtT(t.dusk,o));
+  }else{
+    h+=row("Blue hour","blue",fmtT(t.dawn,o),fmtT(t.blueEndAM,o));
+    h+=row("Sunrise","gold",fmtT(t.sunrise,o),"",az(t.sunrise));
+    const noonAlt=Math.round(SunCalc.getPosition(t.solarNoon,pin.lat,pin.lng).altitude*180/Math.PI);
+    if(ok(t.goldenHourEnd)){
+      h+=row("Golden","gold",fmtT(t.blueEndAM,o),fmtT(t.goldenHourEnd,o));
+      h+=row("Noon","",fmtT(t.solarNoon,o),"",noonAlt+"° high");
+      h+=row("Golden","gold",fmtT(t.goldenHour,o),fmtT(t.blueStartPM,o));
+    }else{
+      h+=row("Golden","gold",fmtT(t.blueEndAM,o),fmtT(t.blueStartPM,o),"all day");
+      h+=row("Noon","",fmtT(t.solarNoon,o),"",noonAlt+"° high");
+    }
+    h+=row("Sunset","gold",fmtT(t.sunset,o),"",az(t.sunset));
+    h+=row("Blue hour","blue",fmtT(t.blueStartPM,o),fmtT(t.dusk,o));
+  }
+  h+=`<span class="k">Moon</span><span>${m.name}</span><span class="az">${m.pct}% lit</span>`;
+  if(m.rise||m.set)h+=`<span class="k">Moon</span><span>${m.rise?"rises "+fmtT(m.rise,o):"no moonrise"}</span><span class="az">${m.set?"sets "+fmtT(m.set,o):""}</span>`;
+  $("lightTbl").innerHTML=h;
+  $("tzNote").textContent=S.offExact?"local time":"approx. local time";
+}
+function skyRating(lo,mi,hi,pp){
+  if(pp>=60)return ["Rain likely","var(--bad)"];
+  if(lo>=75)return ["Overcast","#5d6a64"];
+  const up=Math.max(mi,hi);
+  if(up>=25&&up<=85&&lo<50)return ["Color potential","var(--gold)"];
+  if(lo+mi+hi<20)return ["Clear","var(--good)"];
+  return ["Mixed","var(--muted)"];
+}
+function renderFc(){
+  const j=fcData;if(!j)return;const H=j.hourly,D=j.daily,out=[];
+  const at=(iso)=>{if(!iso)return null;const i=H.time.indexOf(iso.slice(0,13)+":00");return i<0?null:i;};
+  for(let i=0;i<D.time.length;i++){
+    const ri=at(D.sunrise[i]),si=at(D.sunset[i]);
+    const rate=k=>k==null?["No sunrise/sunset","transparent"]:skyRating(H.cloud_cover_low[k],H.cloud_cover_mid[k],H.cloud_cover_high[k],H.precipitation_probability[k]??0);
+    const a=rate(ri),b=rate(si),[y,mo,d]=D.time[i].split("-").map(Number),dn=new Date(y,mo-1,d).toLocaleDateString("en-US",{weekday:"short"});
+    out.push(`<button data-d="${D.time[i]}" aria-pressed="${D.time[i]===S.date}" title="Sunrise: ${a[0]}. Sunset: ${b[0]}.">
+      <span class="d">${dn}</span><span class="sky"><span style="background:${a[1]}"></span><span style="background:${b[1]}"></span></span>
+      <span>${Math.round(D.temperature_2m_max[i])}°/${Math.round(D.temperature_2m_min[i])}°</span><span class="muted">${D.precipitation_probability_max[i]??0}%</span></button>`);
+  }
+  $("fc").innerHTML=out.join("");
+  $("fc").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>setDate(b.dataset.d)));
+  renderFcSel();
+}
+function renderFcSel(){
+  if(!fcData){return;}
+  $("fc").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.d===S.date));
+  const i=fcData.daily.time.indexOf(S.date);
+  if(i<0){$("fcNote").textContent="The sky forecast covers the next 7 days. Light times above are for "+S.date+".";return;}
+  const H=fcData.hourly,D=fcData.daily,k=H.time.indexOf((D.sunrise[i]||"").slice(0,13)+":00"),q=H.time.indexOf((D.sunset[i]||"").slice(0,13)+":00");
+  const desc=(x,lab)=>x<0?"":`${lab}: ${skyRating(H.cloud_cover_low[x],H.cloud_cover_mid[x],H.cloud_cover_high[x],H.precipitation_probability[x]??0)[0].toLowerCase()} (low ${H.cloud_cover_low[x]}%, mid ${H.cloud_cover_mid[x]}%, high ${H.cloud_cover_high[x]}% cloud).`;
+  $("fcNote").textContent=[desc(k,"Sunrise"),desc(q,"Sunset")].filter(Boolean).join(" ")+" Top bar is sunrise, bottom is sunset.";
+}
+
+/* nearby wildlife */
+let nearSeq=0;
+async function loadNearby(){
+  if(!pin)return;const my=++nearSeq,rad=+$("radius").value,box=$("near");
+  const grp=$("groups").querySelector('[aria-pressed="true"]').textContent.toLowerCase();
+  $("nearNote").textContent=`${F.taxon===1?"Animals":grp[0].toUpperCase()+grp.slice(1)} photographed within ${rad} km${F.month?" in "+MONTHS[F.month-1]:""}, most-seen first. Tap one for its best months.`;
+  box.innerHTML='<div class="skel">Checking iNaturalist…</div>';
+  // selected species card
+  if(F.species){$("selSpSec").hidden=false;showSpecies($("selSp"),{id:F.species.id,name:F.species.name,sci:F.species.sci},rad,true);}else $("selSpSec").hidden=true;
+  try{
+    const p={lat:pin.lat.toFixed(5),lng:pin.lng.toFixed(5),radius:rad,taxon_id:F.taxon,month:F.month||"",per_page:25,locale:"en"};
+    if(F.rg)p.quality_grade="research";else p.verifiable="true";
+    const r=await inat("observations/species_counts",p);if(my!==nearSeq)return;
+    const res=(r.results||[]).filter(x=>x.taxon);
+    if(!res.length){box.innerHTML=`<div class="hint">No ${F.taxon===1?"animal":grp} sightings logged here${F.month?" in "+MONTHS[F.month-1]:""}. Try a bigger radius${F.month?' or "All year"':""}.</div>`;return;}
+    box.innerHTML="";
+    res.forEach(x=>{const t=x.taxon,b=document.createElement("button");b.className="sp";
+      b.innerHTML=`<img alt="" loading="lazy" src="${esc(t.default_photo?.square_url||"")}"><span class="nm"><b>${esc(t.preferred_common_name||t.name)}</b><i>${esc(t.name)}${t.conservation_status?" · "+esc((t.conservation_status.status_name||t.conservation_status.status||"").toString()):""}</i></span><span class="c">${x.count.toLocaleString()}<br>sightings</span>`;
+      b.addEventListener("click",()=>{const d=$("spDetail");d.hidden=false;showSpecies(d,{id:t.id,name:t.preferred_common_name||t.name,sci:t.name,photo:t.default_photo?.square_url},rad,false);d.scrollIntoView({block:"nearest",behavior:reduce?"auto":"smooth"});});
+      box.appendChild(b);});
+  }catch(err){if(my===nearSeq)box.innerHTML=`<div class="hint">Couldn't reach iNaturalist: ${esc(err.message)}. Tap the pin spot again to retry.</div>`;}
+}
+$("radius").addEventListener("change",loadNearby);
+
+async function showSpecies(el,t,rad,isSel){
+  const r2=Math.max(rad,25);
+  el.innerHTML=`<div class="row" style="justify-content:space-between"><span class="nm"><b>${esc(t.name)}</b><i>${esc(t.sci)}</i></span>
+    ${isSel?"":`<button class="btn" data-act="map">Map it</button>`}</div>
+    <div class="lbl">Sightings by month <span class="muted">within ${r2} km</span></div>
+    <div class="months skel" style="height:64px"></div><div class="mlab">${MONTHS.map(m=>`<span>${m[0]}</span>`).join("")}</div>
+    <div class="hint best"></div><div class="lbl">Latest photos</div><div class="photos"><div class="skel">Loading…</div></div>`;
+  const mb=el.querySelector('[data-act="map"]');
+  if(mb)mb.addEventListener("click",()=>pickSpecies({id:t.id,preferred_common_name:t.name,name:t.sci,default_photo:{square_url:t.photo||""}}));
+  const base={taxon_id:t.id,lat:pin.lat.toFixed(5),lng:pin.lng.toFixed(5)};
+  try{
+    const h=await inat("observations/histogram",{...base,radius:r2,interval:"month_of_year",verifiable:"true",date_field:"observed"});
+    const mo=h.results?.month_of_year||{},vals=MONTHS.map((_,i)=>mo[i+1]||mo[String(i+1)]||0),max=Math.max(1,...vals);
+    const mEl=el.querySelector(".months");mEl.classList.remove("skel");
+    const cur=F.month||(now.getMonth()+1);
+    mEl.innerHTML=vals.map((v,i)=>`<div class="${i+1===cur?"on":""}" style="height:${Math.max(3,v/max*100)}%" title="${MONTHS[i]}: ${v} sightings"></div>`).join("");
+    const total=vals.reduce((a,b)=>a+b,0);
+    const top=vals.map((v,i)=>[v,i]).sort((a,b)=>b[0]-a[0]).filter(x=>x[0]>0).slice(0,3).map(x=>MONTHS[x[1]]);
+    el.querySelector(".best").textContent=total?`Best months here: ${top.join(", ")}. ${total.toLocaleString()} sightings in total.`:"No dated sightings within this range.";
+  }catch(err){el.querySelector(".months").outerHTML=`<div class="hint">Seasonality unavailable: ${esc(err.message)}.</div>`;}
+  try{
+    const o=await inat("observations",{...base,radius:r2,photos:"true",per_page:6,order_by:"observed_on",order:"desc",verifiable:"true"});
+    const ph=el.querySelector(".photos");
+    if(!o.results?.length){ph.innerHTML='<div class="hint">No photos nearby yet.</div>';return;}
+    ph.innerHTML=o.results.map(x=>{const u=(x.photos?.[0]?.url||"").replace("square","medium"),d=x.observed_on?new Date(x.observed_on+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}):"";
+      return `<a href="https://www.inaturalist.org/observations/${x.id}" target="_blank" rel="noopener" title="${esc(x.photos?.[0]?.attribution||"")}"><img alt="${esc(t.name)}" loading="lazy" src="${esc(u)}"><span>${esc(d)}</span></a>`;}).join("");
+  }catch(err){el.querySelector(".photos").innerHTML=`<div class="hint">Photos unavailable: ${esc(err.message)}.</div>`;}
+}
+
+/* copy */
+$("copyLL").addEventListener("click",async()=>{const t=$("pinLL").textContent;
+  try{await navigator.clipboard.writeText(t);$("copyLL").textContent="Copied";}catch(_){const r=document.createRange();r.selectNodeContents($("pinLL"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("copyLL").textContent="Selected";}
+  setTimeout(()=>$("copyLL").textContent="Copy",1500);});
+
+/* ================= saved spots ================= */
+let spots=store.get("wl.spots",[]),spotEnts=[];
+function saveSpots(){store.set("wl.spots",spots);renderSpots();}
+function renderSpots(){
+  $("spotN").textContent=spots.length?"("+spots.length+")":"";
+  spotEnts.forEach(e=>viewer.entities.remove(e));spotEnts=spots.map(s=>viewer.entities.add({position:C.Cartesian3.fromDegrees(s.lng,s.lat),
+    point:{pixelSize:9,color:C.Color.fromCssColorString("#94d17e"),outlineColor:C.Color.BLACK,outlineWidth:2,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY},
+    label:{text:s.name,font:"11px JetBrains Mono, monospace",fillColor:C.Color.WHITE,outlineColor:C.Color.BLACK,outlineWidth:3,style:C.LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset:new C.Cartesian2(0,-14),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY,
+      distanceDisplayCondition:new C.DistanceDisplayCondition(0,400000)}}));
+  const box=$("spotList");
+  if(!spots.length){box.innerHTML='<div class="card"><b>No saved spots yet</b><div class="hint">Tap the globe to scout a place, name it, and press Save spot. Your spots show as green dots on the globe.</div></div>';scene.requestRender();return;}
+  box.innerHTML="";
+  spots.forEach((s,i)=>{const d=document.createElement("div");d.className="spot";
+    d.innerHTML=`<span class="nm"><b>${esc(s.name)}</b><i>${s.lat.toFixed(4)}, ${s.lng.toFixed(4)} · saved ${esc(s.saved)}</i></span>
+      <button class="btn" data-a="go">Scout</button><button class="btn ghost" data-a="rm">Remove</button>`;
+    d.querySelector('[data-a="go"]').addEventListener("click",()=>{flyTo(s.lng,s.lat,5000,-35,0);scout(s.lat,s.lng,s.name);});
+    const rm=d.querySelector('[data-a="rm"]');
+    rm.addEventListener("click",()=>{if(rm.dataset.c){spots.splice(i,1);saveSpots();}else{rm.dataset.c="1";rm.textContent="Confirm";rm.classList.add("danger");setTimeout(()=>{if(rm.isConnected){delete rm.dataset.c;rm.textContent="Remove";rm.classList.remove("danger");}},3000);}});
+    box.appendChild(d);});
+  scene.requestRender();
+}
+$("saveSpot").addEventListener("click",()=>{if(!pin)return;
+  const name=$("spotName").value.trim()||"Spot "+(spots.length+1);
+  spots.unshift({name,lat:+pin.lat.toFixed(6),lng:+pin.lng.toFixed(6),saved:new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})});
+  saveSpots();$("spotName").value=name;$("saveSpot").textContent="Saved";setTimeout(()=>$("saveSpot").textContent="Save spot",1500);});
+renderSpots();
+
+/* ================= camera, picking, readout ================= */
+function flyTo(lon,lat,range,pitch,heading,cb){
+  (async()=>{let h=0;if(range<200000&&Math.abs(lat)<85)h=(await heightAt(lon,lat,12))||0;
+    viewer.camera.flyToBoundingSphere(new C.BoundingSphere(C.Cartesian3.fromDegrees(lon,lat,Math.max(0,h)*scene.verticalExaggeration),0),
+      {offset:new C.HeadingPitchRange(C.Math.toRadians(heading),C.Math.toRadians(pitch),range),duration:reduce?0:4.5,complete:cb});})();
+}
+$("fly").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  const [lon,lat]=b.dataset.ll.split(",").map(Number),r=+b.dataset.r,g=b.dataset.g;
+  const gb=$("groups").querySelector(`[data-t="${g}"]`);if(gb&&!F.species){$("groups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===gb));F.taxon=+g;buildSightings();}
+  flyTo(lon,lat,r,+b.dataset.p,+b.dataset.h,()=>{if(r<200000)scout(lat,lon,b.textContent.trim());});
 });
+function pickLL(pos){const ray=viewer.camera.getPickRay(pos);if(!ray)return null;const c=globe.pick(ray,scene);if(!c)return null;
+  const g=C.Cartographic.fromCartesian(c);return {lat:C.Math.toDegrees(g.latitude),lng:C.Math.toDegrees(g.longitude)};}
+const hnd=new C.ScreenSpaceEventHandler(scene.canvas);let mt=0,rseq=0;
+hnd.setInputAction(m=>{const ll=pickLL(m.position);if(ll)scout(ll.lat,ll.lng);},C.ScreenSpaceEventType.LEFT_CLICK);
+hnd.setInputAction(m=>{clearTimeout(mt);const p=C.Cartesian2.clone(m.endPosition);mt=setTimeout(async()=>{
+  const ll=pickLL(p);if(!ll){$("rlat").textContent=$("rlon").textContent=$("rel").textContent="—";return;}
+  $("rlat").textContent=Math.abs(ll.lat).toFixed(4)+"° "+(ll.lat>=0?"N":"S");$("rlon").textContent=Math.abs(ll.lng).toFixed(4)+"° "+(ll.lng>=0?"E":"W");
+  const my=++rseq;if(Math.abs(ll.lat)>85){$("rel").textContent="—";return;}const h=await heightAt(ll.lng,ll.lat,13);if(my===rseq)$("rel").textContent=h==null?"—":Math.round(h).toLocaleString()+" m";},70);},C.ScreenSpaceEventType.MOUSE_MOVE);
+function altText(){const a=viewer.camera.positionCartographic.height;$("ralt").textContent=a>10000?Math.round(a/1000).toLocaleString()+" km":Math.round(a).toLocaleString()+" m";}
+viewer.camera.percentageChanged=.05;
+viewer.camera.changed.addEventListener(()=>{altText();if(!pin)refreshLight();});
 
-/* ---------- readout ---------- */
-function srcFor(lat,lon){
-  if(lat>=60)return "ArcticDEM · 2 m";
-  if(lat<=-60)return "AntarcticDEM · 8 m";
-  if(lon>-179.9&&lon<-64.5&&lat>17.5&&lat<71.5)return "USGS 3DEP · LiDAR up to 1 m";
-  return "Esri World Hillshade";
-}
-let seq=0;
-async function readout(pos){
-  const ray=viewer.camera.getPickRay(pos);if(!ray)return;
-  const cart=globe.pick(ray,scene);
-  if(!cart){["rlat","rlon","rel"].forEach(id=>$(id).textContent="—");$("rsrc").textContent="";return;}
-  const c=C.Cartographic.fromCartesian(cart),lat=C.Math.toDegrees(c.latitude),lon=C.Math.toDegrees(c.longitude);
-  $("rlat").textContent=Math.abs(lat).toFixed(5)+"° "+(lat>=0?"N":"S");
-  $("rlon").textContent=Math.abs(lon).toFixed(5)+"° "+(lon>=0?"E":"W");
-  $("rsrc").textContent=srcFor(lat,lon);
-  const my=++seq;
-  if(Math.abs(lat)>85){const g=c.height/(scene.verticalExaggeration||1);$("rel").textContent="≈ "+Math.round(g).toLocaleString()+" m";return;}
-  const el=await heightAt(lon,lat,13);if(my!==seq)return;
-  $("rel").textContent=el==null?"—":Math.round(el).toLocaleString()+" m · "+Math.round(el*3.28084).toLocaleString()+" ft";
-}
-const hnd=new C.ScreenSpaceEventHandler(scene.canvas);let mt=0;
-hnd.setInputAction(m=>{clearTimeout(mt);const p=C.Cartesian2.clone(m.endPosition);mt=setTimeout(()=>readout(p),60);},C.ScreenSpaceEventType.MOUSE_MOVE);
-hnd.setInputAction(m=>readout(m.position),C.ScreenSpaceEventType.LEFT_CLICK);
-function altText(){const a=viewer.camera.positionCartographic.height;
-  $("ralt").textContent=a>10000?Math.round(a/1000).toLocaleString()+" km":Math.round(a).toLocaleString()+" m";}
-viewer.camera.changed.addEventListener(altText);viewer.camera.percentageChanged=0.02;
-
-/* ---------- start ---------- */
-viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-50,25,22000000)});
-altText();
-viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-72.7,48,14000000),duration:reduce?0:2.5});
+/* ================= start ================= */
+viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-50,25,22000000)});altText();refreshLight();
+viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-72.7,42,12500000),duration:reduce?0:2.5,complete:refreshLight});
 })();
 </script>
 </body>
