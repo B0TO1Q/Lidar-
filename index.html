@@ -3,224 +3,356 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#060908">
 <title>Wildlight</title>
 <meta name="description" content="Wildlife photography scouting globe: sightings, golden hour, sky forecast and terrain, pole to pole.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium/Widgets/widgets.css">
 <style>
-/* Layout: full-bleed globe; field console docked left on desktop, bottom sheet on phone.
-   Palette: night-forest neutrals, golden-hour amber for light, blue-hour blue, sky-quality greens/reds. */
+/* Layout: full-bleed globe. Top: one search bar. Right: map controls. Left panel (desktop) / bottom sheet (phone).
+   Palette: night-forest neutrals, golden-hour amber, blue-hour blue, sky-quality greens and reds. */
 :root{
-  --bg:#060908; --panel:rgba(11,16,14,.92); --raise:#131b18; --line:#25302b; --fg:#e6ece8; --muted:#8d9a93;
-  --gold:#f2b84b; --blue:#86aee0; --good:#94d17e; --warn:#e6a94f; --bad:#e07563;
+  --bg:#060908; --panel:rgba(11,16,14,.94); --raise:#141c19; --hover:#1a2420; --line:#26312c; --fg:#e8eee9; --muted:#8f9c95;
+  --gold:#f2b84b; --gold-ink:#1a1206; --blue:#86aee0; --good:#94d17e; --bad:#e07563;
   --display:"Saira Semi Condensed","Arial Narrow",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --gap:16px; --panelW:368px; --barH:48px; --r:10px;
+  --top:calc(var(--gap) + env(safe-area-inset-top,0px));
+  --sheet-h:50%;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:12px;overflow:hidden}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:12px;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
 #map{position:fixed;inset:0}
-.cesium-viewer-bottom{left:auto!important;right:8px;bottom:4px!important;max-width:55%}
-.cesium-widget-credits{font-size:9px!important;opacity:.65}
+.cesium-viewer-bottom{display:none}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.glass{background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);box-shadow:0 8px 28px rgba(0,0,0,.35)}
 
-/* panel */
-.panel{position:fixed;z-index:2;top:calc(16px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));width:340px;
-  background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:8px;
-  display:flex;flex-direction:column;max-height:calc(100% - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:hidden}
-.head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 12px 10px 14px}
-h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.05em;text-transform:uppercase;margin:0;line-height:1}
-h1 i{font-style:normal;color:var(--gold)}
-.sub{color:var(--muted);margin-top:3px;font-size:11px}
-#hide{all:unset;flex:none;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;color:var(--gold);cursor:pointer}
-#hide:hover{border-color:var(--gold)}
-#hide svg{transition:transform .2s ease}
-.panel.collapsed .tabs,.panel.collapsed .body,.panel.collapsed .sub{display:none}
-.panel.collapsed h1{font-size:16px}
+/* ---------- search ---------- */
+.searchwrap{position:fixed;z-index:6;top:var(--top);left:max(var(--gap),env(safe-area-inset-left,0px));width:var(--panelW)}
+.sbar{display:flex;align-items:center;gap:8px;height:var(--barH);border-radius:var(--r);padding:0 8px 0 14px}
+.sbar .brand{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.sbar .brand i{font-style:normal;color:var(--gold)}
+.sbar .sep{width:1px;height:22px;background:var(--line)}
+.sbar input,.sbar input[type=text]{flex:1;min-width:0;background:none;border:0;border-radius:0;padding:0;color:var(--fg);font:inherit;font-size:13px;height:100%;outline:none}
+.sbar input::placeholder{color:var(--muted)}
+.iconbtn{all:unset;cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;color:var(--muted);flex:none}
+.iconbtn:hover{color:var(--fg);background:var(--hover)}
+.iconbtn:focus-visible{outline:2px solid var(--gold)}
+.sdrop{margin-top:6px;border-radius:var(--r);max-height:min(60vh,520px);overflow:auto;padding:6px}
+.sgroup{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--muted);padding:8px 8px 4px}
+.sitem{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;padding:8px;border-radius:7px}
+.sitem:hover,.sitem.kb{background:var(--hover)}
+.sitem .ic{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:var(--raise);color:var(--muted);flex:none;font-size:11px}
+.sitem .tx{display:flex;flex-direction:column;min-width:0;flex:1}
+.sitem .tx b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sitem .tx i{font-style:normal;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sitem .go{color:var(--muted);font-size:10px;flex:none}
+.sempty{padding:10px 8px;color:var(--muted);line-height:1.5}
+
+/* ---------- species key (painted species) ---------- */
+.key{position:fixed;z-index:3;display:flex;gap:6px}
+.kchip{display:flex;align-items:center;gap:6px;border-radius:999px;padding:4px 4px 4px 10px;font-size:11px;white-space:nowrap}
+.kchip .sw{width:10px;height:10px}
+.kchip button{all:unset;cursor:pointer;color:var(--muted);font-size:10px;padding:3px 7px;border-radius:999px}
+.kchip button:hover{color:var(--gold);background:var(--hover)}
+.kchip .rm{font-size:13px;padding:1px 7px}
+
+/* ---------- map controls ---------- */
+.ctrls{position:fixed;z-index:4;right:max(var(--gap),env(safe-area-inset-right,0px));top:var(--top);display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.cgroup{display:flex;flex-direction:column;border-radius:var(--r);overflow:hidden}
+.cbtn{all:unset;cursor:pointer;width:44px;height:44px;display:grid;place-items:center;color:var(--fg);position:relative}
+.cbtn+.cbtn{border-top:1px solid var(--line)}
+.cbtn:hover{background:var(--hover)}
+.cbtn:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.cbtn[aria-pressed="true"]{color:var(--gold);background:rgba(242,184,75,.12)}
+.cbtn .tip{position:absolute;right:52px;top:50%;transform:translateY(-50%);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:11px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s}
+@media (hover:hover){.cbtn:hover .tip{opacity:1}}
+#needle{transition:transform .2s}
+.sunpill{border-radius:999px;padding:6px 11px;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted);max-width:220px;text-align:right}
+.sunpill b{color:var(--gold);font-weight:600}
+
+/* layers popover */
+.pop{position:fixed;z-index:7;right:calc(max(var(--gap),env(safe-area-inset-right,0px)) + 54px);top:var(--top);width:290px;max-width:calc(100% - 80px);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:12px}
+.pop h3{margin:0;font-family:var(--display);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+
+/* ---------- panel / sheet ---------- */
+.panel{position:fixed;z-index:5;left:max(var(--gap),env(safe-area-inset-left,0px));top:calc(var(--top) + var(--barH) + 10px);width:var(--panelW);
+  bottom:calc(var(--gap) + env(safe-area-inset-bottom,0px));border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;transition:transform .25s ease}
+.panel.collapsed{bottom:auto}
+.panel.collapsed .body{display:none}
+.grab{display:none}
+.tabbar{display:flex;align-items:center;gap:4px;padding:8px;border-bottom:1px solid var(--line);flex:none}
+.tabs{display:flex;gap:2px;flex:1;background:var(--raise);border-radius:8px;padding:3px}
+.tabs button{all:unset;flex:1;text-align:center;cursor:pointer;padding:7px 2px;border-radius:6px;color:var(--muted);font-family:var(--display);font-weight:500;letter-spacing:.08em;text-transform:uppercase;font-size:11.5px;position:relative}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{background:var(--gold);color:var(--gold-ink);font-weight:700}
+.tabs button:focus-visible{outline:2px solid var(--gold)}
+.tabs .badge{display:inline-block;min-width:15px;padding:0 4px;border-radius:8px;background:var(--line);color:var(--fg);font-family:var(--mono);font-size:9px;line-height:15px;margin-left:4px;letter-spacing:0}
+.tabs button[aria-selected="true"] .badge{background:rgba(0,0,0,.2);color:var(--gold-ink)}
+#hide svg{transition:transform .2s}
 .panel.collapsed #hide svg{transform:rotate(180deg)}
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);margin:0 12px;border:1px solid var(--line);border-radius:5px;overflow:hidden;flex:none}
-.tabs button{all:unset;text-align:center;padding:8px 4px;cursor:pointer;color:var(--muted);font-family:var(--display);font-weight:500;letter-spacing:.1em;text-transform:uppercase;font-size:11px}
-.tabs button+button{border-left:1px solid var(--line)}
-.tabs button[aria-selected="true"]{background:var(--gold);color:#1a1206;font-weight:700}
-.tabs .n{font-family:var(--mono);font-size:10px;opacity:.8}
-.body{overflow:auto;padding:12px 12px 14px 14px;display:flex;flex-direction:column;gap:14px;min-height:0;overscroll-behavior:contain}
-section{display:flex;flex-direction:column;gap:8px}
-#scoutBody{display:flex;flex-direction:column;gap:16px}
-.lbl{font-family:var(--display);font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.body{overflow:auto;padding:14px;display:flex;flex-direction:column;gap:18px;min-height:0;flex:1;overscroll-behavior:contain;scrollbar-width:thin}
+section{display:flex;flex-direction:column;gap:9px}
+.lbl{font-family:var(--display);font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:22px}
 .lbl b{color:var(--gold);font-family:var(--mono);font-weight:600;letter-spacing:0;text-transform:none}
-.card{background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px}
-.chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:3px;padding:4px 7px;font-size:11px;color:var(--fg);line-height:1.3}
+.card{background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:11px;display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:11px;line-height:1.3}
 .chip:hover{border-color:var(--gold);color:var(--gold)}
-.chip[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#1a1206;font-weight:600}
-button:focus-visible,input:focus-visible,select:focus-visible,.tog:focus-within{outline:2px solid var(--gold);outline-offset:1px}
-input[type=range]{width:100%;accent-color:var(--gold);margin:0}
-input[type=text],input[type=date],select{font:inherit;color:var(--fg);background:#0c1210;border:1px solid var(--line);border-radius:4px;padding:6px 8px;width:100%;min-width:0}
+.chip[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--gold-ink);font-weight:600}
+.chip:focus-visible{outline:2px solid var(--gold)}
+.seg{display:flex;background:var(--raise);border-radius:8px;padding:3px;gap:2px}
+.seg button{all:unset;flex:1;text-align:center;cursor:pointer;padding:6px 4px;border-radius:6px;color:var(--muted);font-size:11px}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--gold)}
+input[type=range]{width:100%;accent-color:var(--gold);margin:0;height:22px}
+input[type=text],input[type=date],select{font:inherit;color:var(--fg);background:#0c1210;border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
+select{appearance:auto}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .row>*{min-width:0}
+.between{justify-content:space-between}
 .ends{display:flex;justify-content:space-between;color:var(--muted);font-size:10px}
-.tog{display:flex;align-items:center;gap:7px;cursor:pointer}
-.tog input{accent-color:var(--gold);margin:0}
-.btn{all:unset;cursor:pointer;border:1px solid var(--gold);color:var(--gold);border-radius:4px;padding:6px 10px;font-size:11px;font-weight:600;text-align:center}
+.btn{all:unset;cursor:pointer;border:1px solid var(--gold);color:var(--gold);border-radius:7px;padding:7px 12px;font-size:11px;font-weight:600;text-align:center;white-space:nowrap}
 .btn:hover{background:rgba(242,184,75,.12)}
-.btn.solid{background:var(--gold);color:#1a1206}
+.btn.solid{background:var(--gold);color:var(--gold-ink)}
 .btn.ghost{border-color:var(--line);color:var(--fg);font-weight:400}
+.btn.ghost:hover{background:var(--hover)}
 .btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn:focus-visible{outline:2px solid var(--gold)}
 .muted{color:var(--muted)}
-.hint{color:var(--muted);font-size:11px;line-height:1.5}
-.note{color:var(--muted);font-size:10px;line-height:1.55;border-top:1px solid var(--line);padding-top:10px}
+.hint{color:var(--muted);font-size:11px;line-height:1.55}
+.note{color:var(--muted);font-size:10px;line-height:1.6;border-top:1px solid var(--line);padding-top:12px}
 a{color:var(--gold)}
+details{border:1px solid var(--line);border-radius:8px}
+summary{cursor:pointer;padding:10px 12px;font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:var(--muted);list-style:none;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--mono)}
+details[open] summary::after{content:"–"}
+details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
 
-/* species search */
-.search{position:relative}
-.sresults{position:absolute;left:0;right:0;top:calc(100% + 3px);background:#0c1210;border:1px solid var(--line);border-radius:5px;z-index:5;max-height:260px;overflow:auto}
-.sresults button{all:unset;display:flex;gap:8px;align-items:center;padding:6px;width:100%;box-sizing:border-box;cursor:pointer}
-.sresults button:hover,.sresults button:focus-visible{background:var(--raise)}
-.sresults img,.sp img{width:38px;height:38px;border-radius:4px;object-fit:cover;flex:none;background:#1b2420}
-.picked{display:flex;align-items:center;gap:8px;border:1px solid var(--gold);border-radius:5px;padding:5px}
-.picked img{width:34px;height:34px;border-radius:4px;object-fit:cover}
-.nm{display:flex;flex-direction:column;min-width:0;flex:1}
+/* switch rows */
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.sw-row:first-child{border-top:0}
+.sw-row .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sw-row .tx i{font-style:normal;color:var(--muted);font-size:10.5px;line-height:1.45}
+.switch{appearance:none;-webkit-appearance:none;width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;flex:none;margin:0;transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--fg);transition:transform .15s}
+.switch:checked{background:var(--gold)}
+.switch:checked::after{transform:translateX(16px);background:var(--gold-ink)}
+
+/* species list */
+.sw{width:12px;height:12px;border-radius:50%;flex:none;border:1.5px solid var(--muted);display:inline-block}
+.catalog{display:flex;flex-direction:column;gap:1px}
+.cat{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:7px}
+.cat:hover{background:var(--hover)}
+.cat:focus-visible{outline:2px solid var(--gold)}
+.cat[aria-pressed="true"]{background:var(--raise)}
+.cat[aria-pressed="true"] .sw{border-color:transparent}
+.cat .add{flex:none;font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+.cat[aria-pressed="true"] .add{color:var(--gold);border-color:var(--gold)}
+.nm{display:flex;flex-direction:column;min-width:0;flex:1;gap:1px}
 .nm b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nm i{color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.x{all:unset;cursor:pointer;color:var(--muted);padding:2px 6px;font-size:14px}
-.x:hover{color:var(--fg)}
+.nm i{font-style:normal;color:var(--muted);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iucn{font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;border:1px solid currentColor;letter-spacing:.03em;margin-left:4px}
+.iucn.CR{color:#ff6b5a}.iucn.EN{color:#f0a04b}.iucn.VU{color:#e8d15a}.iucn.NT{color:#a9c98a}
+.subhead{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--muted);padding:10px 6px 4px;position:sticky;top:-14px;background:var(--panel);z-index:1}
+.onmap{display:flex;flex-direction:column;gap:4px}
+.om{display:flex;align-items:center;gap:8px;padding:6px 4px}
+.om .nm b{font-weight:600}
 
 /* light table */
-.light{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;font-variant-numeric:tabular-nums;align-items:center}
+.light{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;font-variant-numeric:tabular-nums;align-items:center}
 .light>span{white-space:nowrap}
 .light .k{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:10px}
 .light .gold{color:var(--gold)} .light .blue{color:var(--blue)}
 .light .az{color:var(--muted);font-size:10px;text-align:right}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .daynav{display:flex;align-items:center;gap:6px}
-.daynav .btn{padding:4px 9px}
 .daynav input{flex:1}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.fact{background:var(--raise);border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.fact span{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;color:var(--muted)}
+.fact b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.place{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.02em;line-height:1.15;text-wrap:balance}
+.timebig{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.02em;font-variant-numeric:tabular-nums;line-height:1}
+.timebig small{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);letter-spacing:0;margin-left:8px}
 
 /* forecast */
 .fc{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
-.fc button{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:4px;padding:5px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-variant-numeric:tabular-nums}
+.fc button{all:unset;cursor:pointer;border:1px solid var(--line);border-radius:7px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-variant-numeric:tabular-nums}
+.fc button:hover{background:var(--hover)}
 .fc button[aria-pressed="true"]{border-color:var(--gold)}
 .fc .d{font-family:var(--display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .fc .sky{width:100%;display:flex;flex-direction:column;gap:2px;align-items:center}
 .fc .sky span{width:70%;height:5px;border-radius:2px}
 .legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10px;color:var(--muted)}
 
-/* species list */
-.splist{display:flex;flex-direction:column;gap:4px}
-.sp{all:unset;cursor:pointer;display:flex;gap:8px;align-items:center;padding:5px;border-radius:5px;border:1px solid transparent}
-.sp:hover,.sp:focus-visible{border-color:var(--line);background:var(--raise)}
+/* nearby list, detail */
+.splist{display:flex;flex-direction:column;gap:2px}
+.sp{all:unset;cursor:pointer;display:flex;gap:10px;align-items:center;padding:6px;border-radius:7px}
+.sp:hover{background:var(--hover)}
+.sp:focus-visible{outline:2px solid var(--gold)}
+.sp img{width:40px;height:40px;border-radius:6px;object-fit:cover;flex:none;background:#1b2420}
 .sp .c{font-variant-numeric:tabular-nums;color:var(--muted);font-size:10px;text-align:right;flex:none}
-.months{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:64px}
+.months{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:60px}
 .months div{background:var(--gold);opacity:.35;border-radius:2px 2px 0 0;min-height:2px}
 .months div.on{opacity:1}
 .mlab{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;font-size:9px;color:var(--muted);text-align:center}
 .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
-.photos a{display:block;position:relative;aspect-ratio:1;max-width:100%;border-radius:4px;overflow:hidden;background:#1b2420}
+.photos a{display:block;position:relative;aspect-ratio:1;max-width:100%;border-radius:6px;overflow:hidden;background:#1b2420}
 .photos img{width:100%;height:100%;object-fit:cover;display:block}
 .photos span{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.8));color:#fff;font-size:9px;padding:8px 4px 3px}
-.spot{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:5px;padding:7px}
-.spot .nm b{color:var(--fg)}
+.spot{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:9px}
+.empty{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px dashed var(--line);border-radius:8px}
+.empty b{font-weight:600}
 
-/* species finder */
-.catalog{display:flex;flex-direction:column;gap:2px;max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:3px}
-.cat{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px;border-radius:4px}
-.cat:hover,.cat:focus-visible{background:var(--raise)}
-.cat[aria-pressed="true"]{background:var(--raise)}
-.sw{width:12px;height:12px;border-radius:50%;flex:none;border:1.5px solid var(--muted)}
-.cat[aria-pressed="true"] .sw{border-color:transparent}
-.meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;font-size:10px;color:var(--muted);max-width:42%;text-align:right}
-.iucn{font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px;border:1px solid currentColor;letter-spacing:.04em}
-.iucn.CR{color:#ff6b5a}.iucn.EN{color:#f0a04b}.iucn.VU{color:#e8d15a}.iucn.NT{color:#a9c98a}.iucn.LC,.iucn.DD{color:var(--muted)}
-.subhead{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--muted);padding:6px 6px 2px}
-.toast{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--gold);color:var(--fg);border-radius:6px;padding:8px 12px;max-width:min(420px,calc(100% - 32px));font-size:11px;line-height:1.5}
-
-/* right column: readout, map tools, legend */
-.rcol{position:fixed;z-index:2;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px;align-items:flex-end;max-width:280px}
-.rcol{pointer-events:none}.rcol>*{pointer-events:auto}
-.tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.tool{all:unset;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.tool svg{flex:none}
-.tool[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:rgba(40,30,10,.9)}
-.tool:focus-visible{outline:2px solid var(--gold)}
-.suntxt{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
-.suntxt b{color:var(--gold);font-weight:600}
-.legend2{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:200px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-.lg{display:flex;align-items:center;gap:7px;font-size:11px}
-.lg .nm2{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lg button{all:unset;cursor:pointer;font-size:10px;color:var(--muted);padding:2px 5px;border:1px solid var(--line);border-radius:3px}
-.lg button:hover{color:var(--gold);border-color:var(--gold)}
-.lg .rm{border:none;font-size:13px;padding:0 4px}
-
-/* readout */
-.readout{
-  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px;font-variant-numeric:tabular-nums;display:grid;grid-template-columns:auto auto;gap:3px 12px;min-width:170px}
-.readout .k{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--muted);align-self:center}
+/* readout, toast, coach */
+.readout{position:fixed;z-index:3;right:max(var(--gap),env(safe-area-inset-right,0px));bottom:calc(var(--gap) + env(safe-area-inset-bottom,0px));border-radius:999px;padding:6px 12px;font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;gap:10px}
+.readout b{color:var(--fg);font-weight:400}
+.toast{position:fixed;z-index:9;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom,0px));border-radius:var(--r);padding:10px 14px;max-width:min(440px,calc(100% - 32px));font-size:11.5px;line-height:1.5;border-color:var(--gold)}
+.coach{position:fixed;z-index:8;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100% - 32px));border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.coach h2{margin:0;font-family:var(--display);font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.coach ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px;line-height:1.5;color:var(--fg)}
+.coach ol b{color:var(--gold);font-weight:600}
 .skel{color:var(--muted);animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.4}}
-#err{position:fixed;z-index:9;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:520px;margin:auto;background:#1a0f0f;border:1px solid #7a3b3b;border-radius:6px;padding:14px;color:#f3dede;white-space:pre-wrap;line-height:1.5}
-@media (prefers-reduced-motion:reduce){#hide svg{transition:none}.skel{animation:none}}
-@media (max-width:640px){
-  .panel{top:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));width:auto;max-height:56%}
-  .head{padding:10px 10px 8px 12px}
-  h1{font-size:18px}
+#err{position:fixed;z-index:20;left:16px;right:16px;top:50%;transform:translateY(-50%);max-width:520px;margin:auto;background:#1a0f0f;border:1px solid #7a3b3b;border-radius:8px;padding:14px;color:#f3dede;white-space:pre-wrap;line-height:1.5}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}.skel{animation:none}}
+
+/* desktop key position */
+@media (min-width:721px){
+  .key{right:max(var(--gap),env(safe-area-inset-right,0px));bottom:calc(var(--gap) + 40px + env(safe-area-inset-bottom,0px));flex-direction:column;align-items:flex-end}
+}
+
+/* ---------- phone ---------- */
+@media (max-width:720px){
+  :root{--gap:10px;--barH:46px}
+  .searchwrap{left:max(var(--gap),env(safe-area-inset-left,0px));right:calc(max(var(--gap),env(safe-area-inset-right,0px)) + 54px);width:auto}
+  .sbar .brand,.sbar .sep{display:none}
+  .sbar{padding-left:12px}
+  .cbtn{width:42px;height:42px}
+  .cbtn .tip{display:none}
+  .sunpill{display:none}
+  .pop{right:max(var(--gap),env(safe-area-inset-right,0px));left:max(var(--gap),env(safe-area-inset-left,0px));width:auto;max-width:none;top:calc(var(--top) + var(--barH) + 8px)}
+  .key{left:max(var(--gap),env(safe-area-inset-left,0px));right:calc(max(var(--gap),env(safe-area-inset-right,0px)) + 54px);top:calc(var(--top) + var(--barH) + 8px);overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .key::-webkit-scrollbar{display:none}
   .readout{display:none}
-  .rcol{top:calc(10px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));left:max(10px,env(safe-area-inset-left,0px));max-width:none}
-  .tool{padding:6px 8px}
-  .legend2{min-width:0;align-self:stretch}
-  .catalog{max-height:240px}
-  .cesium-viewer-bottom{display:none}
-  .note{display:none}
+  .panel{left:0;right:0;width:auto;top:auto;bottom:0;height:var(--sheet-h);border-radius:16px 16px 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px);transition:height .28s cubic-bezier(.2,.8,.2,1)}
+  .panel.dragging{transition:none}
+  .ctrls,.key{transition:opacity .2s}
+  body.sheet-full .ctrls,body.sheet-full .key{opacity:0;pointer-events:none}
+  .panel.collapsed{bottom:0}
+  .panel.collapsed .body{display:flex}
+  .grab{display:flex;justify-content:center;padding:8px 0 2px;cursor:grab;touch-action:none;flex:none}
+  .grab span{width:38px;height:5px;border-radius:3px;background:var(--line)}
+  .tabbar{touch-action:none;padding-top:4px}
+  #hide{display:none}
+  .toast{bottom:calc(var(--sheet-px,120px) + 12px)}
+  .subhead{top:-14px}
 }
 </style>
 </head>
 <body>
 <div id="map" aria-label="Interactive globe. Tap anywhere to scout that spot."></div>
 
-<aside class="panel" id="panel">
-  <div class="head">
-    <div>
-      <h1>Wild<i>light</i></h1>
-      <div class="sub">Find the animal. Find the light.</div>
+<!-- search -->
+<div class="searchwrap" id="searchwrap">
+  <div class="sbar glass">
+    <span class="brand">Wild<i>light</i></span><span class="sep"></span>
+    <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;color:var(--muted)"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <input type="text" id="gq" placeholder="Search places, animals, hotspots" autocomplete="off" spellcheck="false" aria-label="Search places, animals and hotspots" aria-controls="sdrop" aria-expanded="false" role="combobox">
+    <button class="iconbtn" id="gqClear" aria-label="Clear search" hidden><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="sdrop glass" id="sdrop" role="listbox" hidden></div>
+</div>
+
+<!-- painted species key -->
+<div class="key" id="key" hidden></div>
+
+<!-- map controls -->
+<div class="ctrls">
+  <div class="cgroup glass">
+    <button class="cbtn" id="cLocate" aria-label="Go to my location"><span class="tip">My location</span>
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="3" fill="currentColor"/><circle cx="9" cy="9" r="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 .8v2.4M9 14.8v2.4M.8 9h2.4M14.8 9h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <button class="cbtn" id="cCompass" aria-label="Face north and switch between flat and 3D view"><span class="tip" id="compTip">North up · flat view</span>
+      <svg id="needle" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 1.5l3 7.5H6z" fill="var(--bad)"/><path d="M9 16.5l-3-7.5h6z" fill="currentColor"/></svg></button>
+    <button class="cbtn" id="cLayers" aria-label="Map layers" aria-expanded="false" aria-controls="layersPop"><span class="tip">Layers</span>
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2l7 4-7 4-7-4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2 9.5l7 4 7-4M2 13l7 4 7-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
+  </div>
+  <div class="cgroup glass">
+    <button class="cbtn" id="bLive" aria-pressed="false" aria-label="Live sun"><span class="tip">Live sun · follow the real sun</span>
+      <svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="3" fill="currentColor"/><g stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M7 .8v1.6M7 11.6v1.6M.8 7h1.6M11.6 7h1.6M2.6 2.6l1.1 1.1M10.3 10.3l1.1 1.1M2.6 11.4l1.1-1.1M10.3 3.7l1.1-1.1"/></g></svg></button>
+    <button class="cbtn" id="bDay" aria-pressed="false" aria-label="Daylight"><span class="tip">Daylight · day and night</span>
+      <svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg></button>
+    <button class="cbtn" id="bShade" aria-pressed="false" aria-label="Shade"><span class="tip">Shade · terrain shadows</span>
+      <svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 12l4.5-7 3 4.5L10 7.5 13 12z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.5 5l3 4.5L7 12H1z" fill="currentColor" opacity=".55"/></svg></button>
+  </div>
+  <div class="sunpill glass" id="sunTxt" hidden></div>
+</div>
+
+<!-- layers popover -->
+<div class="pop glass" id="layersPop" role="dialog" aria-label="Map layers" hidden>
+  <div class="row between"><h3>Layers</h3><button class="iconbtn" id="layersClose" aria-label="Close layers"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>
+  <div>
+    <div class="lbl">Relief <b id="mixv">25%</b></div>
+    <input type="range" id="mix" min="0" max="100" value="25" aria-label="Satellite to LiDAR relief mix">
+    <div class="ends"><span>Satellite</span><span>LiDAR relief</span></div>
+  </div>
+  <div>
+    <div class="lbl">3D terrain <b id="exv">1.5×</b></div>
+    <input type="range" id="ex" min="0" max="40" value="15" aria-label="Terrain exaggeration">
+  </div>
+  <div>
+    <div class="lbl">Wildlife color strength <b id="sopv">85%</b></div>
+    <input type="range" id="sop" min="10" max="100" value="85" aria-label="Wildlife layer strength">
+  </div>
+  <div>
+    <div class="sw-row"><span class="tx"><b>Place names</b></span><input type="checkbox" class="switch" id="labels" aria-label="Place names"></div>
+    <div class="sw-row"><span class="tx"><b>Contour lines</b><i>25 ft, when zoomed in</i></span><input type="checkbox" class="switch" id="contours" aria-label="Contour lines"></div>
+  </div>
+</div>
+
+<!-- panel / sheet -->
+<aside class="panel glass" id="panel" aria-label="Wildlight panel">
+  <div class="grab" id="grab" aria-hidden="true"><span></span></div>
+  <div class="tabbar" id="tabbar">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="t-wild" aria-selected="true" data-tab="wild">Wildlife<span class="badge" id="wildN" hidden></span></button>
+      <button role="tab" id="t-scout" aria-selected="false" data-tab="scout">Scout</button>
+      <button role="tab" id="t-light" aria-selected="false" data-tab="light">Light</button>
+      <button role="tab" id="t-spots" aria-selected="false" data-tab="spots">Spots<span class="badge" id="spotN" hidden></span></button>
     </div>
-    <button id="hide" aria-expanded="true" aria-controls="panel" aria-label="Hide menu">
+    <button class="iconbtn" id="hide" aria-expanded="true" aria-controls="panel" aria-label="Hide panel">
       <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
   </div>
-  <div class="tabs" role="tablist">
-    <button role="tab" id="t-explore" aria-selected="true" data-tab="explore">Explore</button>
-    <button role="tab" id="t-scout" aria-selected="false" data-tab="scout">Scout</button>
-    <button role="tab" id="t-spots" aria-selected="false" data-tab="spots">Spots <span class="n" id="spotN"></span></button>
-  </div>
 
-  <!-- EXPLORE -->
-  <div class="body" id="p-explore" role="tabpanel">
+  <!-- WILDLIFE -->
+  <div class="body" id="p-wild" role="tabpanel" aria-labelledby="t-wild">
     <section>
-      <div class="lbl">Sightings heatmap <label class="tog"><input type="checkbox" id="sightOn" checked> Show</label></div>
-      <div class="chips" id="groups">
-        <button class="chip" data-t="1" aria-pressed="true">All animals</button>
-        <button class="chip" data-t="3" aria-pressed="false">Birds</button>
-        <button class="chip" data-t="40151" aria-pressed="false">Mammals</button>
-        <button class="chip" data-t="26036" aria-pressed="false">Reptiles</button>
-        <button class="chip" data-t="20978" aria-pressed="false">Amphibians</button>
-        <button class="chip" data-t="47158" aria-pressed="false">Insects</button>
-        <button class="chip" data-t="47178" aria-pressed="false">Fish</button>
-      </div>
-      <div class="row">
-        <select id="month" aria-label="Month" style="flex:1"></select>
-        <label class="tog"><input type="checkbox" id="rg" checked> Research grade</label>
-      </div>
-      <div class="lbl">Map color strength <b id="sopv">85%</b></div>
-      <input type="range" id="sop" min="10" max="100" value="85" aria-label="Sightings opacity">
-      <div class="hint" id="heatNote" hidden>The general heatmap is hidden while species are painted on the map. Clear them to bring it back.</div>
+      <div class="lbl">On the map <b id="actN"></b></div>
+      <div class="onmap" id="onmap"></div>
     </section>
 
     <section>
-      <div class="lbl">Species finder <b id="actN"></b></div>
-      <div class="hint">Tap animals to paint where they're seen most, each in its own color. Up to 6 at once.</div>
-      <div class="chips" id="tier">
-        <button class="chip" data-v="all" aria-pressed="true">All</button>
-        <button class="chip" data-v="popular" aria-pressed="false">Popular</button>
-        <button class="chip" data-v="rare" aria-pressed="false">Rare &amp; elusive</button>
+      <div class="row" style="flex-wrap:nowrap">
+        <select id="month" aria-label="Month" style="flex:1"></select>
+        <div class="seg" id="rgSeg" style="flex:1.3">
+          <button data-v="1" aria-pressed="true">Verified</button>
+          <button data-v="0" aria-pressed="false">All</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="lbl">Find animals</div>
+      <div class="seg" id="tier">
+        <button data-v="all" aria-pressed="true">All</button>
+        <button data-v="popular" aria-pressed="false">Popular</button>
+        <button data-v="rare" aria-pressed="false">Rare &amp; elusive</button>
       </div>
       <div class="chips" id="kind">
         <button class="chip" data-v="all" aria-pressed="true">Every kind</button>
@@ -229,80 +361,57 @@ a{color:var(--gold)}
         <button class="chip" data-v="other" aria-pressed="false">Reptiles &amp; more</button>
         <button class="chip" data-v="ct" aria-pressed="false">Connecticut</button>
       </div>
-      <input type="text" id="q" placeholder="Filter, or search any animal…" autocomplete="off" aria-label="Filter species">
+      <input type="text" id="cq" placeholder="Filter this list, or name any animal" autocomplete="off" aria-label="Filter animals">
       <div class="catalog" id="catalog" role="list"></div>
     </section>
 
-    <section>
-      <div class="lbl">Sunlight on the terrain</div>
-      <input type="date" id="date" aria-label="Date">
-      <div class="lbl">Time <b id="timev">—</b></div>
-      <input type="range" id="time" min="0" max="1439" step="5" value="420" aria-label="Time of day">
-      <div class="chips" id="timeJump">
-        <button class="chip" data-j="blueAM">Blue AM</button>
-        <button class="chip" data-j="sunrise">Sunrise</button>
-        <button class="chip" data-j="noon">Noon</button>
-        <button class="chip" data-j="goldPM">Golden PM</button>
-        <button class="chip" data-j="sunset">Sunset</button>
+    <details id="heatBox">
+      <summary>All-sightings heatmap</summary>
+      <div>
+        <div class="sw-row"><span class="tx"><b>Show heatmap</b><i id="heatNote">Every animal photographed, colored by how often.</i></span><input type="checkbox" class="switch" id="sightOn" checked aria-label="Show heatmap"></div>
+        <div class="chips" id="groups">
+          <button class="chip" data-t="1" aria-pressed="true">All animals</button>
+          <button class="chip" data-t="3" aria-pressed="false">Birds</button>
+          <button class="chip" data-t="40151" aria-pressed="false">Mammals</button>
+          <button class="chip" data-t="26036" aria-pressed="false">Reptiles</button>
+          <button class="chip" data-t="20978" aria-pressed="false">Amphibians</button>
+          <button class="chip" data-t="47158" aria-pressed="false">Insects</button>
+          <button class="chip" data-t="47178" aria-pressed="false">Fish</button>
+        </div>
       </div>
-      <div class="hint">Use <b>Live sun</b>, <b>Daylight</b> and <b>Shade</b> on the map to see the light. Shade shows once you zoom in closer than about 40 km. Times are local to your pin, or to the middle of the screen.</div>
-    </section>
+    </details>
 
-    <section>
-      <div class="lbl">Map</div>
-      <div class="lbl">Relief mix <b id="mixv">25%</b></div>
-      <input type="range" id="mix" min="0" max="100" value="25" aria-label="Satellite to relief mix">
-      <div class="ends"><span>Satellite</span><span>LiDAR relief</span></div>
-      <div class="lbl">3D terrain <b id="exv">1.5×</b></div>
-      <input type="range" id="ex" min="0" max="40" value="15" aria-label="Terrain exaggeration">
-      <div class="row">
-        <label class="tog"><input type="checkbox" id="labels"> Place names</label>
-        <label class="tog"><input type="checkbox" id="contours"> Contours</label>
-      </div>
-    </section>
-
-    <section>
-      <div class="lbl">Fly to a hotspot</div>
-      <div class="chips" id="fly">
-        <button class="chip" data-ll="-73.287,41.459" data-r="5000" data-p="-35" data-h="0" data-g="3">Shepaug eagles, CT</button>
-        <button class="chip" data-ll="-72.552,41.262" data-r="6000" data-p="-40" data-h="0" data-g="3">Hammonasset, CT</button>
-        <button class="chip" data-ll="-110.20,44.88" data-r="22000" data-p="-30" data-h="60" data-g="40151">Lamar Valley</button>
-        <button class="chip" data-ll="-155.778,58.554" data-r="5000" data-p="-30" data-h="90" data-g="40151">Brooks Falls</button>
-        <button class="chip" data-ll="-94.17,58.77" data-r="45000" data-p="-40" data-h="0" data-g="40151">Churchill</button>
-        <button class="chip" data-ll="15.6,78.2" data-r="70000" data-p="-35" data-h="30" data-g="40151">Svalbard</button>
-        <button class="chip" data-ll="35.14,-1.49" data-r="45000" data-p="-35" data-h="0" data-g="40151">Maasai Mara</button>
-        <button class="chip" data-ll="22.9,-19.3" data-r="90000" data-p="-40" data-h="0" data-g="40151">Okavango</button>
-        <button class="chip" data-ll="-56.77,-17.36" data-r="30000" data-p="-35" data-h="0" data-g="40151">Pantanal</button>
-        <button class="chip" data-ll="-90.4,-0.6" data-r="160000" data-p="-45" data-h="0" data-g="1">Galápagos</button>
-        <button class="chip" data-ll="76.45,26.02" data-r="20000" data-p="-35" data-h="0" data-g="40151">Ranthambore</button>
-        <button class="chip" data-ll="-63.494,-64.825" data-r="30000" data-p="-30" data-h="200" data-g="3">Antarctic Peninsula</button>
-        <button class="chip" data-ll="0,-89.5" data-r="2600000" data-p="-88" data-h="0" data-g="1">South Pole</button>
-        <button class="chip" data-ll="-40,25" data-r="16000000" data-p="-88" data-h="0" data-g="1">Whole Earth</button>
-      </div>
-    </section>
-
-    <div class="note">Sightings: iNaturalist community observations. Light: SunCalc. Sky forecast: Open-Meteo. Relief: USGS 3DEP LiDAR (US), ArcticDEM, AntarcticDEM, Esri World Hillshade. Imagery: Esri World Imagery with NASA Blue Marble at the poles.</div>
+    <div class="note">Sightings: iNaturalist community. Light: SunCalc. Sky: Open-Meteo. Places: Photon / OpenStreetMap. Relief: USGS 3DEP LiDAR, ArcticDEM, AntarcticDEM, Esri. Imagery: Esri World Imagery, NASA Blue Marble.</div>
   </div>
 
   <!-- SCOUT -->
-  <div class="body" id="p-scout" role="tabpanel" hidden>
-    <div id="scoutEmpty" class="card">
+  <div class="body" id="p-scout" role="tabpanel" aria-labelledby="t-scout" hidden>
+    <div class="empty" id="scoutEmpty">
       <b>Tap anywhere on the globe</b>
-      <div class="hint">You'll get that spot's golden and blue hours, which way the sun rises and sets, a 7-day sky forecast for sunrise and sunset, and the animals people have photographed nearby, with their best months.</div>
+      <span class="hint">You'll get that spot's golden and blue hours, where the sun rises and sets, a 7-day sky forecast, and the animals photographed nearby with their best months.</span>
+      <div class="row"><button class="btn ghost" id="scoutHere">Scout the middle of the screen</button></div>
     </div>
-    <div id="scoutBody" hidden>
+    <div id="scoutBody" hidden style="display:flex;flex-direction:column;gap:18px">
       <section>
-        <div class="lbl">Pin <span><b id="pinElev"></b></span></div>
-        <div class="row" style="justify-content:space-between">
-          <span id="pinLL" style="font-variant-numeric:tabular-nums"></span>
-          <span class="row" style="gap:6px">
-            <button class="btn ghost" id="copyLL">Copy</button>
-            <a class="btn ghost" id="mapsLink" target="_blank" rel="noopener">Directions</a>
-          </span>
+        <div class="row between" style="flex-wrap:nowrap;align-items:flex-start">
+          <div style="min-width:0;display:flex;flex-direction:column;gap:3px">
+            <div class="place" id="placeName">Dropped pin</div>
+            <span class="hint" id="pinLL" style="font-variant-numeric:tabular-nums"></span>
+          </div>
+          <button class="iconbtn" id="clearPin" aria-label="Clear pin"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+        </div>
+        <div class="facts">
+          <div class="fact"><span>Elevation</span><b id="pinElev">—</b></div>
+          <div class="fact"><span>Sunrise</span><b id="fRise">—</b></div>
+          <div class="fact"><span>Sunset</span><b id="fSet">—</b></div>
         </div>
         <div class="row">
           <input type="text" id="spotName" placeholder="Name this spot" aria-label="Spot name" style="flex:1">
-          <button class="btn solid" id="saveSpot">Save spot</button>
+          <button class="btn solid" id="saveSpot">Save</button>
+        </div>
+        <div class="row">
+          <button class="btn ghost" id="copyLL">Copy coordinates</button>
+          <a class="btn ghost" id="mapsLink" target="_blank" rel="noopener">Directions</a>
         </div>
       </section>
 
@@ -317,26 +426,26 @@ a{color:var(--gold)}
       </section>
 
       <section>
-        <div class="lbl">Sky at sunrise / sunset</div>
+        <div class="lbl">Sky at sunrise &amp; sunset</div>
         <div class="fc" id="fc"><div class="skel" style="grid-column:1/-1">Loading forecast…</div></div>
         <div class="legend">
           <span><span class="dot" style="background:var(--gold)"></span>Color potential</span>
           <span><span class="dot" style="background:var(--good)"></span>Clear</span>
           <span><span class="dot" style="background:var(--muted)"></span>Mixed</span>
           <span><span class="dot" style="background:#5d6a64"></span>Overcast</span>
-          <span><span class="dot" style="background:var(--bad)"></span>Rain likely</span>
+          <span><span class="dot" style="background:var(--bad)"></span>Rain</span>
         </div>
         <div class="hint" id="fcNote"></div>
       </section>
 
       <section id="selSpSec" hidden>
-        <div class="lbl">Your painted species near here</div>
+        <div class="lbl">Your animals near here</div>
         <div id="selSp" style="display:flex;flex-direction:column;gap:8px"></div>
       </section>
 
       <section>
         <div class="lbl">Seen nearby
-          <select id="radius" aria-label="Search radius" style="width:auto;padding:3px 6px">
+          <select id="radius" aria-label="Search radius" style="width:auto;padding:4px 8px">
             <option value="5">5 km</option><option value="10" selected>10 km</option><option value="25">25 km</option><option value="50">50 km</option>
           </select>
         </div>
@@ -347,32 +456,56 @@ a{color:var(--gold)}
     </div>
   </div>
 
+  <!-- LIGHT -->
+  <div class="body" id="p-light" role="tabpanel" aria-labelledby="t-light" hidden>
+    <section>
+      <div class="timebig" id="timeBig">—</div>
+      <div class="hint" id="timev">—</div>
+      <input type="range" id="time" min="0" max="1439" step="5" value="420" aria-label="Time of day">
+      <div class="ends"><span>Midnight</span><span>Noon</span><span>Midnight</span></div>
+      <div class="chips" id="timeJump">
+        <button class="chip" data-j="blueAM">Blue hour</button>
+        <button class="chip" data-j="sunrise">Sunrise</button>
+        <button class="chip" data-j="noon">Noon</button>
+        <button class="chip" data-j="goldPM">Golden hour</button>
+        <button class="chip" data-j="sunset">Sunset</button>
+        <button class="chip" data-j="now">Now</button>
+      </div>
+      <div class="daynav">
+        <button class="btn ghost" id="lPrev" aria-label="Previous day">‹</button>
+        <input type="date" id="date" aria-label="Date">
+        <button class="btn ghost" id="lNext" aria-label="Next day">›</button>
+      </div>
+    </section>
+    <section>
+      <div class="card" style="gap:0;padding:4px 12px">
+        <div class="sw-row"><span class="tx"><b>Live sun</b><i>Follow the real sun right now.</i></span><input type="checkbox" class="switch" id="lLive" aria-label="Live sun"></div>
+        <div class="sw-row"><span class="tx"><b>Daylight</b><i>Light the globe by the sun, with night on the far side.</i></span><input type="checkbox" class="switch" id="lDay" aria-label="Daylight"></div>
+        <div class="sw-row"><span class="tx"><b>Shade</b><i>Hills cast shadows. Zoom in closer than about 40 km to see it.</i></span><input type="checkbox" class="switch" id="lShade" aria-label="Shade"></div>
+      </div>
+      <div class="hint">Times are local to your pin, or to the middle of the screen when there's no pin. The same three switches sit on the right edge of the map.</div>
+    </section>
+  </div>
+
   <!-- SPOTS -->
-  <div class="body" id="p-spots" role="tabpanel" hidden>
+  <div class="body" id="p-spots" role="tabpanel" aria-labelledby="t-spots" hidden>
+    <div id="spotList" class="splist" style="gap:6px"></div>
     <div class="hint">Spots are saved in this browser on this device.</div>
-    <div id="spotList" class="splist"></div>
   </div>
 </aside>
 
-<div class="rcol">
-  <div class="readout" aria-live="polite">
-    <span class="k">Lat</span><div id="rlat">—</div>
-    <span class="k">Lon</span><div id="rlon">—</div>
-    <span class="k">Elev</span><div id="rel">—</div>
-    <span class="k">Alt</span><div id="ralt">—</div>
-  </div>
-  <div class="tools">
-    <button class="tool" id="bLive" aria-pressed="false" title="Follow the real sun right now">
-      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="3" fill="currentColor"/><g stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7 .8v1.6M7 11.6v1.6M.8 7h1.6M11.6 7h1.6M2.6 2.6l1.1 1.1M10.3 10.3l1.1 1.1M2.6 11.4l1.1-1.1M10.3 3.7l1.1-1.1"/></g></svg>Live sun</button>
-    <button class="tool" id="bDay" aria-pressed="false" title="Light the globe by the sun, with night on the far side">
-      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg>Daylight</button>
-    <button class="tool" id="bShade" aria-pressed="false" title="Cast shadows from hills and mountains">
-      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 12l4.5-7 3 4.5L10 7.5 13 12z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.5 5l3 4.5L7 12H1z" fill="currentColor" opacity=".55"/></svg>Shade</button>
-  </div>
-  <div class="suntxt" id="sunTxt" hidden></div>
-  <div class="legend2" id="legend" hidden></div>
+<div class="readout glass" id="readout"><span>Lat <b id="rlat">—</b></span><span>Lon <b id="rlon">—</b></span><span>Elev <b id="rel">—</b></span><span>Alt <b id="ralt">—</b></span></div>
+<div class="toast glass" id="toast" role="status" hidden></div>
+<div class="coach glass" id="coach" role="dialog" aria-label="Welcome" hidden>
+  <h2>Wild<span style="color:var(--gold)">light</span></h2>
+  <ol>
+    <li><b>Search</b> a place, an animal or a hotspot in the bar at the top.</li>
+    <li><b>Tap the globe</b> anywhere for a scouting report: light, sky and animals.</li>
+    <li><b>Paint animals</b> from the Wildlife tab to see where they're seen most.</li>
+    <li><b>Live sun, Daylight, Shade</b> on the right show the real light on the land.</li>
+  </ol>
+  <button class="btn solid" id="coachOk">Start exploring</button>
 </div>
-<div class="toast" id="toast" hidden></div>
 <div id="err" hidden></div>
 
 <script>
@@ -391,18 +524,57 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(_){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(_){}}};
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const phone=matchMedia("(max-width:720px)");
 
-/* ================= panel, tabs ================= */
-const panel=$("panel"),hideBtn=$("hide"),mq=matchMedia("(max-width:640px)");
-function arrow(){hideBtn.querySelector("svg").style.rotate=mq.matches?"180deg":"0deg";}
-function collapse(c,save){panel.classList.toggle("collapsed",c);hideBtn.setAttribute("aria-expanded",!c);hideBtn.setAttribute("aria-label",c?"Show menu":"Hide menu");if(save)store.set("wl.collapsed",c);}
-collapse(store.get("wl.collapsed",false),false);arrow();mq.addEventListener("change",arrow);
-hideBtn.addEventListener("click",()=>collapse(!panel.classList.contains("collapsed"),true));
-function tab(name){
+/* ================= panel, sheet, tabs ================= */
+const panel=$("panel");
+const SNAP={peek:0,half:1,full:2};let sheet="half";
+function sheetPx(state){const H=window.innerHeight;return state==="peek"?78:state==="full"?Math.round(H-(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--barH"))||46)-30):Math.round(H*.48);}
+function setSheet(state,anim=true){
+  sheet=state;if(!phone.matches)return;
+  panel.classList.toggle("dragging",!anim);
+  document.body.classList.toggle("sheet-full",state==="full");
+  const px=sheetPx(state);panel.style.height=px+"px";document.documentElement.style.setProperty("--sheet-px",px+"px");
+}
+function collapse(c,save){
+  if(phone.matches){setSheet(c?"peek":"half");return;}
+  panel.classList.toggle("collapsed",c);$("hide").setAttribute("aria-expanded",!c);$("hide").setAttribute("aria-label",c?"Show panel":"Hide panel");
+  if(save)store.set("wl.collapsed",c);
+}
+$("hide").addEventListener("click",()=>collapse(!panel.classList.contains("collapsed"),true));
+function layoutMode(){
+  if(phone.matches){panel.classList.remove("collapsed");setSheet(sheet,false);}
+  else{panel.style.height="";collapse(store.get("wl.collapsed",false),false);}
+}
+phone.addEventListener("change",layoutMode);addEventListener("resize",()=>{if(phone.matches)setSheet(sheet,false);});
+let curTab="wild";
+function tab(name,state){
+  curTab=name;
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===name));
-  ["explore","scout","spots"].forEach(n=>$("p-"+n).hidden=n!==name);
+  ["wild","scout","light","spots"].forEach(n=>$("p-"+n).hidden=n!==name);
+  if(phone.matches){if(state)setSheet(state);else if(sheet==="peek")setSheet("half");}
+  else if(panel.classList.contains("collapsed"))collapse(false,false);
 }
 document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b)tab(b.dataset.tab);});
+document.querySelector(".tabs").addEventListener("keydown",e=>{if(!["ArrowLeft","ArrowRight"].includes(e.key))return;
+  const order=["wild","scout","light","spots"],i=order.indexOf(curTab),n=order[(i+(e.key==="ArrowRight"?1:3))%4];tab(n);$("t-"+n).focus();});
+/* drag the sheet on phones */
+(function(){
+  let y0=0,h0=0,dragging=false,moved=false;
+  const start=e=>{moved=false;if(!phone.matches)return;if(e.target.closest(".tabs button")&&e.pointerType==="mouse")return;dragging=true;moved=false;y0=e.clientY;h0=panel.getBoundingClientRect().height;panel.classList.add("dragging");};
+  const move=e=>{if(!dragging)return;const dy=y0-e.clientY;if(Math.abs(dy)>4)moved=true;if(!moved)return;
+    const h=Math.max(80,Math.min(sheetPx("full"),h0+dy));panel.style.height=h+"px";e.preventDefault();};
+  const end=e=>{if(!dragging)return;dragging=false;panel.classList.remove("dragging");
+    if(!moved){if(e.target.closest("#grab"))setSheet(sheet==="peek"?"half":sheet==="half"?"full":"half");else setSheet(sheet);return;}
+    const h=panel.getBoundingClientRect().height,v=y0-e.clientY,opts=["peek","half","full"].map(s=>[s,Math.abs(sheetPx(s)-h)]);
+    let best=opts.sort((a,b)=>a[1]-b[1])[0][0];
+    if(Math.abs(v)>60){const order=["peek","half","full"],i=order.indexOf(sheet);best=order[Math.max(0,Math.min(2,i+(v>0?1:-1)))];if(Math.abs(sheetPx(best)-h)>Math.abs(sheetPx(opts[0][0])-h)+140)best=opts[0][0];}
+    setSheet(best);};
+  [$("grab"),$("tabbar")].forEach(el=>{el.addEventListener("pointerdown",start);});
+  addEventListener("pointermove",move,{passive:false});addEventListener("pointerup",end);addEventListener("pointercancel",end);
+  // a drag that started on a tab should not also switch the tab
+  $("tabbar").addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false;}},true);
+})();
 
 /* ================= data sources ================= */
 const TERRARIUM="https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
@@ -510,7 +682,7 @@ function obsParams(extra={}){
 let sightLayer=null,labelLayer=null,contourLayers=[];
 function buildSightings(){
   if(sightLayer){L.remove(sightLayer,true);sightLayer=null;}
-  $("heatNote").hidden=!active.length;
+  $("heatNote").textContent=active.length?"Hidden while animals are painted on the map. Clear them to bring it back.":"Every animal photographed, colored by how often.";
   if(F.show&&!active.length){
     const q=new URLSearchParams(Object.entries(obsParams()).filter(([,v])=>v!=="")).toString();
     const prov=new C.UrlTemplateImageryProvider({url:INAT+"{kind}/{z}/{x}/{y}.png?"+q,maximumLevel:16,hasAlphaChannel:true,
@@ -525,7 +697,7 @@ function raiseOverlays(){contourLayers.forEach(l=>L.raiseToTop(l));if(labelLayer
 $("groups").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   $("groups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));F.taxon=+b.dataset.t;filtersChanged();});
 ms.addEventListener("change",()=>{F.month=+ms.value;filtersChanged();});
-$("rg").addEventListener("change",e=>{F.rg=e.target.checked;filtersChanged();});
+$("rgSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;$("rgSeg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));F.rg=b.dataset.v==="1";filtersChanged();});
 $("sightOn").addEventListener("change",e=>{F.show=e.target.checked;buildSightings();});
 $("sop").addEventListener("input",e=>{F.opacity=e.target.value/100;$("sopv").textContent=e.target.value+"%";if(sightLayer)sightLayer.alpha=F.opacity;
   active.forEach(a=>a.layers.forEach(l=>l.alpha=Math.min(1,F.opacity+.1)));scene.requestRender();});
@@ -677,16 +849,20 @@ function removeSpecies(id){
 }
 async function toggleCatalog(e,btn){
   const hit=active.find(a=>a.sci===e.sci);if(hit){removeSpecies(hit.id);return;}
-  btn.querySelector(".nm i").textContent="Finding on iNaturalist…";
+  if(btn)btn.querySelector(".nm i").textContent="Finding on iNaturalist…";else toast(`Loading ${e.name}…`,2500);
   try{const v=await resolveTaxon(e);addSpecies({id:v.id,name:e.name,sci:e.sci,photo:v.photo});}
   catch(err){toast(`Couldn't load ${e.name}: ${err.message}.`);renderCatalog();}
 }
 function renderLegend(){
-  const box=$("legend");box.hidden=!active.length;$("actN").textContent=active.length?active.length+" of 6 on map":"";
-  box.innerHTML=active.map(a=>`<div class="lg" data-id="${a.id}"><span class="sw" style="background:${a.color};border-color:${a.color}"></span><span class="nm2" title="${esc(a.name)}">${esc(a.name)}</span><button data-a="hot" title="Fly to where it's been seen most">Hotspot</button><button class="rm" data-a="rm" aria-label="Remove ${esc(a.name)}">✕</button></div>`).join("");
-  box.querySelectorAll(".lg").forEach(r=>{const id=+r.dataset.id;
+  const n=active.length;$("actN").textContent=n?n+" of 6":"";$("wildN").textContent=n;$("wildN").hidden=!n;
+  const key=$("key");key.hidden=!n;
+  key.innerHTML=active.map(a=>`<div class="kchip glass" data-id="${a.id}"><span class="sw" style="background:${a.color};border-color:${a.color}"></span><span>${esc(a.name)}</span><button data-a="hot" title="Fly to where it's seen most">Hotspot</button><button class="rm" data-a="rm" aria-label="Remove ${esc(a.name)}">×</button></div>`).join("");
+  const om=$("onmap");
+  om.innerHTML=n?active.map(a=>`<div class="om" data-id="${a.id}"><span class="sw" style="background:${a.color};border-color:${a.color}"></span><span class="nm"><b>${esc(a.name)}</b><i>${esc(a.sci)}</i></span><button class="btn ghost" data-a="hot">Hotspot</button><button class="iconbtn" data-a="rm" aria-label="Remove ${esc(a.name)}"><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>`).join("")
+    :`<div class="empty"><b>Nothing painted yet</b><span class="hint">Tap an animal below, or search one at the top. Each gets its own color on the map so you can see where it's seen most.</span></div>`;
+  [key,om].forEach(box=>box.querySelectorAll("[data-id]").forEach(r=>{const id=+r.dataset.id;
     r.querySelector('[data-a="rm"]').addEventListener("click",()=>removeSpecies(id));
-    r.querySelector('[data-a="hot"]').addEventListener("click",()=>hotspot(active.find(a=>a.id===id)));});
+    r.querySelector('[data-a="hot"]').addEventListener("click",()=>hotspot(active.find(a=>a.id===id)));}));
 }
 async function hotspot(a){
   if(!a)return;toast(`Finding where ${a.name} has been seen most…`,8000);
@@ -703,8 +879,9 @@ async function hotspot(a){
 }
 function catRow(e){
   const a=active.find(x=>x.sci===e.sci),b=document.createElement("button");b.className="cat";b.setAttribute("aria-pressed",!!a);b.setAttribute("role","listitem");
-  b.innerHTML=`<span class="sw" style="${a?`background:${a.color};border-color:${a.color}`:""}"></span><span class="nm"><b>${esc(e.name)}</b><i>${esc(e.sci)}</i></span>
-    <span class="meta"><span>${esc(e.where)}</span>${e.iucn?`<span class="iucn ${e.iucn}" title="${IUCN[e.iucn]}">${e.iucn==="LC"?"Common":esc(IUCN[e.iucn])}</span>`:""}</span>`;
+  const badge=e.iucn&&e.iucn!=="LC"&&e.iucn!=="DD"?`<span class="iucn ${e.iucn}" title="${IUCN[e.iucn]}">${e.iucn}</span>`:"";
+  b.innerHTML=`<span class="sw" style="${a?`background:${a.color};border-color:${a.color}`:""}"></span><span class="nm"><b>${esc(e.name)}${badge}</b><i>${esc(e.where)}</i></span><span class="add">${a?"On map":"Paint"}</span>`;
+  b.title=e.sci+(e.iucn?" · "+IUCN[e.iucn]:"");
   b.addEventListener("click",()=>toggleCatalog(e,b));return b;
 }
 let moreSeq=0,moreT=0;
@@ -742,7 +919,7 @@ async function searchMore(q,shown){
 const chipSet=(id,key)=>$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   $(id).querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));finder[key]=b.dataset.v;renderCatalog();});
 chipSet("tier","tier");chipSet("kind","kind");
-$("q").addEventListener("input",e=>{finder.q=e.target.value.trim();renderCatalog();});
+$("cq").addEventListener("input",e=>{finder.q=e.target.value.trim();renderCatalog();});
 
 /* painted species in the scout report */
 function monthBars(vals,cur){const max=Math.max(1,...vals);return `<div class="months">${vals.map((v,i)=>`<div class="${i+1===cur?"on":""}" style="height:${Math.max(3,v/max*100)}%" title="${MONTHS[i]}: ${v}"></div>`).join("")}</div><div class="mlab">${MONTHS.map(m=>`<span>${m[0]}</span>`).join("")}</div>`;}
@@ -811,7 +988,9 @@ function shiftDay(n){const [y,m,d]=S.date.split("-").map(Number);const t=new Dat
 $("dPrev").addEventListener("click",()=>{setLive(false);shiftDay(-1);});$("dNext").addEventListener("click",()=>{setLive(false);shiftDay(1);});
 $("time").value=S.min;
 $("time").addEventListener("input",e=>{setLive(false);S.min=+e.target.value;refreshLight();});
-$("timeJump").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const c=lightCenter();if(!c)return;
+$("timeJump").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.j==="now"){setLive(false);const x=new Date(Date.now()+S.off*1000);S.min=x.getUTCHours()*60+x.getUTCMinutes();$("time").value=S.min;setDate(x.toISOString().slice(0,10));refreshLight();return;}
+  const c=lightCenter();if(!c){toast("Point the globe at land first, or drop a pin.");return;}
   const t=lightFor(c.lat,c.lng),map={blueAM:t.dawn,sunrise:t.sunrise,noon:t.solarNoon,goldPM:t.goldenHour,sunset:t.sunset};
   const d=map[b.dataset.j];if(!ok(d))return;setLive(false);S.min=minOf(d,S.off);$("time").value=S.min;refreshLight();});
 /* ================= live sun, daylight, shade ================= */
@@ -859,10 +1038,12 @@ function refreshLight(){
   const c=lightCenter();let extra="";
   if(c){const p=SunCalc.getPosition(when,c.lat,c.lng),alt=p.altitude*180/Math.PI,b=bearingOf(when,c.lat,c.lng);
     extra=alt>1?` · sun ${Math.round(alt)}° high, ${compass(b)}`:alt>-1.2?` · sun on the horizon, ${compass(b)}`:alt>-6?" · twilight":" · dark";}
-  $("timev").textContent=(live?"Live · ":"")+fmtT(when,S.off)+extra;
+  const [yy,mm,dd]=S.date.split("-").map(Number),dl=new Date(yy,mm-1,dd).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+  $("timeBig").innerHTML=esc(fmtT(when,S.off))+(live?"<small>Live</small>":"");
+  $("timev").textContent=dl+(c?extra:" · point the globe at land to see the sun");
   const st=$("sunTxt");st.hidden=!globe.enableLighting;
   if(globe.enableLighting)st.innerHTML=(live?"<b>Live</b> · ":"")+esc(fmtT(when,S.off))+esc(extra);
-  updateSunMarker(when);
+  updateSunMarker(when);syncSun();
   drawSunNow();scene.requestRender();
 }
 
@@ -906,12 +1087,13 @@ async function scout(lat,lng,name){
   $("scoutEmpty").hidden=true;$("scoutBody").hidden=false;$("spDetail").hidden=true;
   $("pinLL").textContent=lat.toFixed(5)+", "+lng.toFixed(5);
   $("mapsLink").href="https://www.google.com/maps/dir/?api=1&destination="+lat.toFixed(6)+","+lng.toFixed(6);
-  $("spotName").value=name||"";$("pinElev").textContent="";
-  tab("scout");collapse(false,false);
+  $("spotName").value=name||"";$("pinElev").textContent="—";$("fRise").textContent=$("fSet").textContent="—";
+  tab("scout",phone.matches&&sheet==="full"?"full":"half");
+  $("placeName").textContent=name||"Dropped pin";if(!name)placeName(lat,lng,my);
   drawPin();renderLight();refreshLight();
   $("fc").innerHTML='<div class="skel" style="grid-column:1/-1">Loading forecast…</div>';$("fcNote").textContent="";
   loadNearby();
-  heightAt(lng,lat,13).then(h=>{if(my===scoutSeq&&h!=null&&Math.abs(lat)<=85)$("pinElev").textContent=Math.round(h).toLocaleString()+" m · "+Math.round(h*3.28084).toLocaleString()+" ft";});
+  heightAt(lng,lat,13).then(h=>{if(my===scoutSeq&&h!=null&&Math.abs(lat)<=85){$("pinElev").textContent=Math.round(h*3.28084).toLocaleString()+" ft";$("pinElev").title=Math.round(h).toLocaleString()+" m";}});
   try{
     const u="https://api.open-meteo.com/v1/forecast?"+new URLSearchParams({latitude:lat.toFixed(4),longitude:lng.toFixed(4),timezone:"auto",forecast_days:7,
       hourly:"cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation_probability",
@@ -923,6 +1105,7 @@ async function scout(lat,lng,name){
 }
 function renderLight(){
   if(!pin)return;const t=lightFor(pin.lat,pin.lng),m=moonFor(pin.lat,pin.lng),o=S.off;
+  $("fRise").textContent=ok(t.sunrise)?fmtT(t.sunrise,o):"none";$("fSet").textContent=ok(t.sunset)?fmtT(t.sunset,o):"none";
   const row=(k,cls,from,to,azD)=>`<span class="k ${cls}">${k}</span><span>${from}${to?" – "+to:""}</span><span class="az">${azD||""}</span>`;
   const az=d=>ok(d)?Math.round(bearingOf(d,pin.lat,pin.lng))+"° "+compass(bearingOf(d,pin.lat,pin.lng)):"";
   let h="";
@@ -1039,20 +1222,20 @@ async function showSpecies(el,t,rad,isSel){
 /* copy */
 $("copyLL").addEventListener("click",async()=>{const t=$("pinLL").textContent;
   try{await navigator.clipboard.writeText(t);$("copyLL").textContent="Copied";}catch(_){const r=document.createRange();r.selectNodeContents($("pinLL"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("copyLL").textContent="Selected";}
-  setTimeout(()=>$("copyLL").textContent="Copy",1500);});
+  setTimeout(()=>$("copyLL").textContent="Copy coordinates",1500);});
 
 /* ================= saved spots ================= */
 let spots=store.get("wl.spots",[]),spotEnts=[];
 function saveSpots(){store.set("wl.spots",spots);renderSpots();}
 function renderSpots(){
-  $("spotN").textContent=spots.length?"("+spots.length+")":"";
+  $("spotN").textContent=spots.length;$("spotN").hidden=!spots.length;
   spotEnts.forEach(e=>viewer.entities.remove(e));spotEnts=spots.map(s=>viewer.entities.add({position:C.Cartesian3.fromDegrees(s.lng,s.lat),
     point:{pixelSize:9,color:C.Color.fromCssColorString("#94d17e"),outlineColor:C.Color.BLACK,outlineWidth:2,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY},
     label:{text:s.name,font:"11px JetBrains Mono, monospace",fillColor:C.Color.WHITE,outlineColor:C.Color.BLACK,outlineWidth:3,style:C.LabelStyle.FILL_AND_OUTLINE,
       pixelOffset:new C.Cartesian2(0,-14),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY,
       distanceDisplayCondition:new C.DistanceDisplayCondition(0,400000)}}));
   const box=$("spotList");
-  if(!spots.length){box.innerHTML='<div class="card"><b>No saved spots yet</b><div class="hint">Tap the globe to scout a place, name it, and press Save spot. Your spots show as green dots on the globe.</div></div>';scene.requestRender();return;}
+  if(!spots.length){box.innerHTML='<div class="empty"><b>No saved spots yet</b><span class="hint">Tap the globe to scout a place, give it a name and press Save. Saved spots show as green dots on the globe and in search.</span></div>';scene.requestRender();return;}
   box.innerHTML="";
   spots.forEach((s,i)=>{const d=document.createElement("div");d.className="spot";
     d.innerHTML=`<span class="nm"><b>${esc(s.name)}</b><i>${s.lat.toFixed(4)}, ${s.lng.toFixed(4)} · saved ${esc(s.saved)}</i></span>
@@ -1066,36 +1249,175 @@ function renderSpots(){
 $("saveSpot").addEventListener("click",()=>{if(!pin)return;
   const name=$("spotName").value.trim()||"Spot "+(spots.length+1);
   spots.unshift({name,lat:+pin.lat.toFixed(6),lng:+pin.lng.toFixed(6),saved:new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})});
-  saveSpots();$("spotName").value=name;$("saveSpot").textContent="Saved";setTimeout(()=>$("saveSpot").textContent="Save spot",1500);});
+  saveSpots();$("spotName").value=name;$("saveSpot").textContent="Saved";toast(`Saved "${name}" to your spots.`);setTimeout(()=>$("saveSpot").textContent="Save",1500);});
 renderSpots();
 
 /* ================= camera, picking, readout ================= */
 function flyTo(lon,lat,range,pitch,heading,cb){
   (async()=>{let h=0;if(range<200000&&Math.abs(lat)<85)h=(await heightAt(lon,lat,12))||0;
     viewer.camera.flyToBoundingSphere(new C.BoundingSphere(C.Cartesian3.fromDegrees(lon,lat,Math.max(0,h)*scene.verticalExaggeration),0),
-      {offset:new C.HeadingPitchRange(C.Math.toRadians(heading),C.Math.toRadians(pitch),range),duration:reduce?0:4.5,complete:cb});})();
+      {offset:new C.HeadingPitchRange(C.Math.toRadians(heading),C.Math.toRadians(pitch),range),duration:reduce?0:3,complete:cb});})();
 }
-$("fly").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  const [lon,lat]=b.dataset.ll.split(",").map(Number),r=+b.dataset.r,g=b.dataset.g;
-  const gb=$("groups").querySelector(`[data-t="${g}"]`);if(gb&&!active.length){$("groups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===gb));F.taxon=+g;buildSightings();}
-  flyTo(lon,lat,r,+b.dataset.p,+b.dataset.h,()=>{if(r<200000)scout(lat,lon,b.textContent.trim());});
-});
 function pickLL(pos){const ray=viewer.camera.getPickRay(pos);if(!ray)return null;const c=globe.pick(ray,scene);if(!c)return null;
   const g=C.Cartographic.fromCartesian(c);return {lat:C.Math.toDegrees(g.latitude),lng:C.Math.toDegrees(g.longitude)};}
 const hnd=new C.ScreenSpaceEventHandler(scene.canvas);let mt=0,rseq=0;
-hnd.setInputAction(m=>{const ll=pickLL(m.position);if(ll)scout(ll.lat,ll.lng);},C.ScreenSpaceEventType.LEFT_CLICK);
+hnd.setInputAction(m=>{if(!sdrop.hidden||!$("layersPop").hidden){openDrop(false);closeLayers();return;}if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  const ll=pickLL(m.position);if(ll)scout(ll.lat,ll.lng);},C.ScreenSpaceEventType.LEFT_CLICK);
 hnd.setInputAction(m=>{clearTimeout(mt);const p=C.Cartesian2.clone(m.endPosition);mt=setTimeout(async()=>{
   const ll=pickLL(p);if(!ll){$("rlat").textContent=$("rlon").textContent=$("rel").textContent="—";return;}
   $("rlat").textContent=Math.abs(ll.lat).toFixed(4)+"° "+(ll.lat>=0?"N":"S");$("rlon").textContent=Math.abs(ll.lng).toFixed(4)+"° "+(ll.lng>=0?"E":"W");
   const my=++rseq;if(Math.abs(ll.lat)>85){$("rel").textContent="—";return;}const h=await heightAt(ll.lng,ll.lat,13);if(my===rseq)$("rel").textContent=h==null?"—":Math.round(h).toLocaleString()+" m";},70);},C.ScreenSpaceEventType.MOUSE_MOVE);
 function altText(){const a=viewer.camera.positionCartographic.height;$("ralt").textContent=a>10000?Math.round(a/1000).toLocaleString()+" km":Math.round(a).toLocaleString()+" m";}
 viewer.camera.percentageChanged=.05;
-viewer.camera.changed.addEventListener(()=>{altText();if(!pin)refreshLight();gridSwitch();});
+viewer.camera.changed.addEventListener(()=>{altText();updateCompass();if(!pin)refreshLight();gridSwitch();});
 
-/* ================= start ================= */
+
+/* place name for a dropped pin */
+async function placeName(lat,lng,my){
+  try{const r=await fetch("https://photon.komoot.io/reverse?"+new URLSearchParams({lat:lat.toFixed(5),lon:lng.toFixed(5),lang:"en"}));if(!r.ok)return;
+    const j=await r.json(),p=(j.features&&j.features[0]&&j.features[0].properties)||null;if(!p||my!==scoutSeq)return;
+    const near=[p.name&&p.name!==p.city?p.name:"",p.city||p.town||p.village||p.county,p.state||p.country].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).slice(0,2).join(", ");
+    if(near){$("placeName").textContent="Near "+near;if(!$("spotName").value)$("spotName").placeholder="Name this spot (e.g. "+(p.name||p.city||"ridge overlook")+")";}
+  }catch(_){}
+}
+function clearPin(){
+  pin=null;scoutSeq++;drawPin();drawSunNow();$("scoutEmpty").hidden=false;$("scoutBody").hidden=true;$("spDetail").hidden=true;refreshLight();scene.requestRender();
+}
+$("clearPin").addEventListener("click",clearPin);
+
+
+/* ================= search ================= */
+const HOTSPOTS=[
+ ["Shepaug Dam eagles","Southbury, Connecticut",-73.287,41.459,5000,-35,0,"3"],
+ ["Hammonasset Beach","Madison, Connecticut",-72.552,41.262,6000,-40,0,"3"],
+ ["Lamar Valley","Yellowstone · wolves, bison, bears",-110.20,44.88,22000,-30,60,"40151"],
+ ["Brooks Falls","Katmai, Alaska · brown bears",-155.778,58.554,5000,-30,90,"40151"],
+ ["Churchill","Manitoba · polar bears",-94.17,58.77,45000,-40,0,"40151"],
+ ["Svalbard","Norway · polar bears, walrus",15.6,78.2,70000,-35,30,"40151"],
+ ["Maasai Mara","Kenya · big cats, migration",35.14,-1.49,45000,-35,0,"40151"],
+ ["Okavango Delta","Botswana · elephants, wild dogs",22.9,-19.3,90000,-40,0,"40151"],
+ ["Pantanal","Brazil · jaguars, macaws",-56.77,-17.36,30000,-35,0,"40151"],
+ ["Galápagos","Ecuador · endemic wildlife",-90.4,-0.6,160000,-45,0,"1"],
+ ["Ranthambore","India · tigers",76.45,26.02,20000,-35,0,"40151"],
+ ["Antarctic Peninsula","Penguins, seals, whales",-63.494,-64.825,30000,-30,200,"3"],
+ ["South Pole","Antarctica",0,-89.5,2600000,-88,0,"1"],
+ ["Whole Earth","Zoom all the way out",-40,25,16000000,-88,0,"1"]
+].map(([name,sub,lng,lat,r,p,h,g])=>({name,sub,lng,lat,r,p,h,g}));
+const gq=$("gq"),sdrop=$("sdrop");let sItems=[],sIdx=-1,sSeq=0,sT=0;
+const ICON={place:'<svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 13s4.5-4.3 4.5-7.5a4.5 4.5 0 0 0-9 0C2.5 8.7 7 13 7 13z" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="7" cy="5.5" r="1.6" fill="currentColor"/></svg>',
+  hot:'<svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1l1.8 3.8 4.2.5-3.1 2.9.8 4.1L7 10.3 3.3 12.3l.8-4.1L1 5.3l4.2-.5z" fill="currentColor"/></svg>',
+  spot:'<svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5h8v11L7 9.5l-4 3z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+  animal:'<svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><circle cx="4" cy="4" r="1.5" fill="currentColor"/><circle cx="10" cy="4" r="1.5" fill="currentColor"/><circle cx="2.2" cy="7.8" r="1.3" fill="currentColor"/><circle cx="11.8" cy="7.8" r="1.3" fill="currentColor"/><path d="M7 7c2 0 3.3 2 3.3 3.4 0 1.3-1.4 1.6-3.3 1.6s-3.3-.3-3.3-1.6C3.7 9 5 7 7 7z" fill="currentColor"/></svg>'};
+function openDrop(on){sdrop.hidden=!on;gq.setAttribute("aria-expanded",on);if(on)closeLayers();}
+function sRow(it){const swatch=it.color?`<span class="sw" style="background:${it.color};border-color:${it.color};width:12px;height:12px"></span>`:"";
+  return `<button class="sitem" role="option" data-i="${it.i}"><span class="ic">${it.photo?`<img alt="" src="${esc(it.photo)}" style="width:28px;height:28px;border-radius:7px;object-fit:cover">`:ICON[it.kind]}</span><span class="tx"><b>${esc(it.title)}</b><i>${esc(it.sub||"")}</i></span>${swatch}<span class="go">${esc(it.go||"")}</span></button>`;}
+function renderDrop(groups){
+  sItems=[];let h="";
+  groups.forEach(([title,items,emptyMsg])=>{if(!items.length&&!emptyMsg)return;h+=`<div class="sgroup">${esc(title)}</div>`;
+    if(!items.length)h+=`<div class="sempty">${emptyMsg}</div>`;
+    items.forEach(it=>{it.i=sItems.length;sItems.push(it);h+=sRow(it);});});
+  sdrop.innerHTML=h||'<div class="sempty">No matches.</div>';sIdx=-1;
+  sdrop.querySelectorAll(".sitem").forEach(b=>b.addEventListener("click",()=>pickItem(sItems[+b.dataset.i])));
+}
+function hotItems(list){return list.map(h=>({kind:"hot",title:h.name,sub:h.sub,go:"Fly",act:()=>goHot(h)}));}
+function spotItems(list){return list.map(s=>({kind:"spot",title:s.name,sub:s.lat.toFixed(3)+", "+s.lng.toFixed(3),go:"Scout",act:()=>{flyTo(s.lng,s.lat,5000,-35,0);scout(s.lat,s.lng,s.name);}}));}
+function animalItems(list){return list.map(e=>{const a=active.find(x=>x.sci===e.sci);return {kind:"animal",title:e.name,sub:e.where,color:a?a.color:"",go:a?"On map":"Paint",act:()=>{if(!a)toggleCatalog(e,null);else hotspot(a);}};});}
+function showEmptyDrop(){
+  renderDrop([["Your spots",spotItems(spots.slice(0,4))],["Wildlife hotspots",hotItems(HOTSPOTS)]]);openDrop(true);
+}
+function runSearch(q){
+  const ql=q.toLowerCase(),my=++sSeq;
+  const hs=HOTSPOTS.filter(h=>(h.name+" "+h.sub).toLowerCase().includes(ql)).slice(0,4);
+  const sp=spots.filter(s=>s.name.toLowerCase().includes(ql)).slice(0,3);
+  const an=CATALOG.filter(e=>(e.name+" "+e.sci).toLowerCase().includes(ql)).slice(0,5);
+  const base=[["Your spots",spotItems(sp)],["Animals",animalItems(an)],["Hotspots",hotItems(hs)]];
+  renderDrop([...base,["Places",[],'<span class="skel">Searching places…</span>']]);openDrop(true);
+  clearTimeout(sT);sT=setTimeout(async()=>{
+    let places=[],msg="";
+    try{const r=await fetch("https://photon.komoot.io/api/?"+new URLSearchParams({q,limit:6,lang:"en"}));if(!r.ok)throw new Error("place search returned "+r.status);
+      const j=await r.json();places=(j.features||[]).map(f=>{const p=f.properties||{},[lng,lat]=f.geometry.coordinates;
+        const sub=[p.city&&p.city!==p.name?p.city:"",p.county,p.state,p.country].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).slice(0,3).join(", ");
+        return {kind:"place",title:p.name||sub,sub:(p.osm_value?p.osm_value.replace(/_/g," ")+" · ":"")+sub,go:"Go",act:()=>goPlace(lat,lng,p.extent)};});
+      if(!places.length)msg="No places match. Try a town, park, lake or mountain.";
+    }catch(err){msg="Place search is unavailable right now ("+esc(err.message)+").";}
+    if(my!==sSeq)return;
+    let more=[];
+    if(q.length>=3&&!an.length){try{const r=await inat("taxa/autocomplete",{q,per_page:4,taxon_id:1,is_active:"true"});
+      more=(r.results||[]).filter(t=>t.rank_level<=10).map(t=>{const a=active.find(x=>x.id===t.id);return {kind:"animal",photo:t.default_photo?.square_url,title:t.preferred_common_name||t.name,sub:t.name+" · "+(t.observations_count||0).toLocaleString()+" sightings",color:a?a.color:"",go:a?"On map":"Paint",
+        act:()=>a?hotspot(a):addSpecies({id:t.id,name:t.preferred_common_name||t.name,sci:t.name,photo:t.default_photo?.square_url||""})};});}catch(_){}}
+    if(my!==sSeq)return;
+    renderDrop([["Your spots",spotItems(sp)],["Animals",[...animalItems(an),...more]],["Places",places,msg],["Hotspots",hotItems(hs)]]);
+  },280);
+}
+function pickItem(it){if(!it)return;openDrop(false);gq.value="";$("gqClear").hidden=true;gq.blur();it.act();}
+function goHot(h){
+  const gb=$("groups").querySelector(`[data-t="${h.g}"]`);if(gb&&!active.length){$("groups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===gb));F.taxon=+h.g;buildSightings();}
+  flyTo(h.lng,h.lat,h.r,h.p,h.h,()=>{if(h.r<200000)scout(h.lat,h.lng,h.name);});
+}
+function goPlace(lat,lng,ext){
+  if(ext&&ext.length===4){const [w,n,e,s]=ext,span=Math.max(Math.abs(e-w),Math.abs(n-s));
+    if(span>0.02){viewer.camera.flyTo({destination:C.Rectangle.fromDegrees(Math.min(w,e),Math.min(n,s),Math.max(w,e),Math.max(n,s)),duration:reduce?0:2.8});return;}}
+  flyTo(lng,lat,9000,-45,0);
+}
+gq.addEventListener("focus",()=>{if(!gq.value.trim())showEmptyDrop();else runSearch(gq.value.trim());});
+gq.addEventListener("input",()=>{const v=gq.value.trim();$("gqClear").hidden=!v;if(!v){showEmptyDrop();return;}runSearch(v);});
+gq.addEventListener("keydown",e=>{
+  const btns=[...sdrop.querySelectorAll(".sitem")];
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();if(!btns.length)return;sIdx=(sIdx+(e.key==="ArrowDown"?1:-1)+btns.length)%btns.length;
+    btns.forEach((b,i)=>b.classList.toggle("kb",i===sIdx));btns[sIdx].scrollIntoView({block:"nearest"});}
+  else if(e.key==="Enter"){e.preventDefault();pickItem(sItems[sIdx>=0?sIdx:0]);}
+  else if(e.key==="Escape"){openDrop(false);gq.blur();}
+});
+$("gqClear").addEventListener("click",()=>{gq.value="";$("gqClear").hidden=true;gq.focus();showEmptyDrop();});
+document.addEventListener("pointerdown",e=>{if(!e.target.closest("#searchwrap"))openDrop(false);if(!e.target.closest("#layersPop,#cLayers"))closeLayers();},true);
+addEventListener("keydown",e=>{
+  if(e.key==="/"&&document.activeElement.tagName!=="INPUT"){e.preventDefault();gq.focus();}
+  if(e.key==="Escape"){closeLayers();openDrop(false);}
+});
+
+/* ================= map controls ================= */
+function closeLayers(){$("layersPop").hidden=true;$("cLayers").setAttribute("aria-expanded","false");}
+$("cLayers").addEventListener("click",()=>{const open=$("layersPop").hidden;$("layersPop").hidden=!open;$("cLayers").setAttribute("aria-expanded",open);if(open)openDrop(false);});
+$("layersClose").addEventListener("click",closeLayers);
+$("cLocate").addEventListener("click",()=>{
+  if(!navigator.geolocation){toast("This browser can't share your location.");return;}
+  toast("Finding your location…",6000);
+  navigator.geolocation.getCurrentPosition(p=>{const {latitude:la,longitude:lo}=p.coords;toast("Found you. Scouting your location.");
+    flyTo(lo,la,6000,-40,0,()=>scout(la,lo,"My location"));},
+    err=>toast(err.code===1?"Location is blocked. Allow location for this site in your browser settings, then try again.":"Couldn't get your location. Try again outdoors or with Wi-Fi on."),{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+});
+function viewCenter(){const c=globe.pick(viewer.camera.getPickRay(new C.Cartesian2(scene.canvas.clientWidth/2,scene.canvas.clientHeight/2)),scene);return c||null;}
+$("cCompass").addEventListener("click",()=>{
+  const cam=viewer.camera,c=viewCenter();
+  if(!c){viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-40,25,16000000),duration:reduce?0:1.5});return;}
+  const flat=Math.abs(C.Math.toDegrees(cam.pitch)+90)<3,north=Math.abs(C.Math.toDegrees(C.Math.negativePiToPi(cam.heading)))<2;
+  const range=C.Cartesian3.distance(cam.positionWC,c),toPitch=(flat&&north)?-35:-90;
+  cam.flyToBoundingSphere(new C.BoundingSphere(c,0),{offset:new C.HeadingPitchRange(0,C.Math.toRadians(toPitch),range),duration:reduce?0:.9});
+});
+function updateCompass(){const cam=viewer.camera,h=C.Math.toDegrees(cam.heading);$("needle").style.transform=`rotate(${-h}deg)`;
+  const flat=Math.abs(C.Math.toDegrees(cam.pitch)+90)<3,north=Math.abs(C.Math.toDegrees(C.Math.negativePiToPi(cam.heading)))<2;
+  $("compTip").textContent=(flat&&north)?"Tilt to 3D":"North up · flat view";}
+
+/* ================= light tab sync ================= */
+function syncSun(){
+  $("lLive").checked=live;$("lDay").checked=globe.enableLighting;$("lShade").checked=viewer.shadows;
+}
+$("lLive").addEventListener("change",e=>setLive(e.target.checked));
+$("lDay").addEventListener("change",e=>setDaylight(e.target.checked));
+$("lShade").addEventListener("change",e=>setShade(e.target.checked));
+$("lPrev").addEventListener("click",()=>{setLive(false);shiftDay(-1);});$("lNext").addEventListener("click",()=>{setLive(false);shiftDay(1);});
+$("scoutHere").addEventListener("click",()=>{const c=viewCenter();if(!c){toast("Point the globe at land or sea first.");return;}const g=C.Cartographic.fromCartesian(c);scout(C.Math.toDegrees(g.latitude),C.Math.toDegrees(g.longitude));});
+
+/* ================= coach ================= */
+if(!store.get("wl.coach2",false)){$("coach").hidden=false;$("coachOk").focus();}
+$("coachOk").addEventListener("click",()=>{$("coach").hidden=true;store.set("wl.coach2",true);});
+
+layoutMode();
+if(phone.matches)setSheet("peek",false);
 rebuildActive();buildSightings();renderLegend();renderCatalog();
-viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-50,25,22000000)});altText();refreshLight();
-viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-72.7,42,12500000),duration:reduce?0:2.5,complete:refreshLight});
+viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-50,25,22000000)});altText();updateCompass();refreshLight();
+viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-72.7,40,phone.matches?16000000:12500000),duration:reduce?0:2.5,complete:refreshLight});
+
 })();
 </script>
 </body>

@@ -1,6 +1,6 @@
 # Wildlight
 
-A wildlife photography scouting globe. Live: https://b0to1q.github.io/lidar-/
+A wildlife photography scouting globe. One search bar for places, animals, hotspots and saved spots; tap the globe to scout; drag the bottom sheet on phones. Live: https://b0to1q.github.io/lidar-/
 
 - Wildlife sightings heatmap (iNaturalist), by group or species, filtered by month
 - Tap anywhere for a scout report: blue and golden hours, sunrise/sunset direction, moon, 7-day sky forecast at sunrise and sunset (Open-Meteo), animals seen nearby with best months and latest photos
