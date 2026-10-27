@@ -24,6 +24,15 @@ html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:
   padding:14px;display:flex;flex-direction:column;gap:13px;max-height:calc(100% - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto}
 h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.04em;text-transform:uppercase;margin:0;line-height:1}
 .sub{color:var(--muted);margin-top:4px;line-height:1.4}
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+#hide{all:unset;flex:none;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;color:var(--accent);cursor:pointer}
+#hide:hover{border-color:var(--accent)}
+#hide svg{transition:transform .2s ease}
+.panel.collapsed{gap:0}
+.panel.collapsed>:not(.head),.panel.collapsed .sub{display:none}
+.panel.collapsed h1{font-size:16px;margin-top:6px}
+.panel.collapsed #hide svg{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){#hide svg{transition:none}}
 .grp{display:flex;flex-direction:column;gap:7px}
 .lbl{font-family:var(--display);font-weight:500;text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
 .lbl b{color:var(--accent);font-family:var(--mono);font-weight:600;letter-spacing:0}
@@ -57,10 +66,15 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 <body>
 <div id="map" aria-label="Interactive globe"></div>
 
-<aside class="panel">
-  <div>
-    <h1>Relief Globe</h1>
-    <div class="sub">Satellite imagery and high-resolution relief, pole to pole</div>
+<aside class="panel" id="panel">
+  <div class="head">
+    <div>
+      <h1>Relief Globe</h1>
+      <div class="sub">Satellite imagery and high-resolution relief, pole to pole</div>
+    </div>
+    <button id="hide" aria-expanded="true" aria-controls="panel" aria-label="Hide menu">
+      <svg class="up" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </div>
 
   <div class="grp">
@@ -127,6 +141,16 @@ window.CESIUM_BASE_URL="https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium
 </script>
 <script src="https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium/Cesium.js"></script>
 <script>
+(function(){
+  const panel=document.getElementById("panel"),btn=document.getElementById("hide"),mq=matchMedia("(max-width:640px)");
+  function arrow(){ // desktop: chevron points up to hide; phone: points down to hide
+    btn.querySelector("svg").style.rotate=mq.matches?"180deg":"0deg";}
+  function set(c,save){panel.classList.toggle("collapsed",c);btn.setAttribute("aria-expanded",!c);
+    btn.setAttribute("aria-label",c?"Show menu":"Hide menu");if(save)try{localStorage.setItem("menuCollapsed",c?"1":"0")}catch(_){}}
+  let saved=null;try{saved=localStorage.getItem("menuCollapsed")}catch(_){}
+  set(saved==="1",false);arrow();mq.addEventListener("change",arrow);
+  btn.addEventListener("click",()=>set(!panel.classList.contains("collapsed"),true));
+})();
 (function(){
 if(!window.Cesium){showErr("The globe engine didn't load. Open this page in Safari or Chrome with internet access.");return;}
 const C=Cesium, $=id=>document.getElementById(id);
