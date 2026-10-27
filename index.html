@@ -121,8 +121,38 @@ a{color:var(--gold)}
 .spot{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:5px;padding:7px}
 .spot .nm b{color:var(--fg)}
 
+/* species finder */
+.catalog{display:flex;flex-direction:column;gap:2px;max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:3px}
+.cat{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px;border-radius:4px}
+.cat:hover,.cat:focus-visible{background:var(--raise)}
+.cat[aria-pressed="true"]{background:var(--raise)}
+.sw{width:12px;height:12px;border-radius:50%;flex:none;border:1.5px solid var(--muted)}
+.cat[aria-pressed="true"] .sw{border-color:transparent}
+.meta{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none;font-size:10px;color:var(--muted);max-width:42%;text-align:right}
+.iucn{font-size:9px;font-weight:600;padding:1px 4px;border-radius:3px;border:1px solid currentColor;letter-spacing:.04em}
+.iucn.CR{color:#ff6b5a}.iucn.EN{color:#f0a04b}.iucn.VU{color:#e8d15a}.iucn.NT{color:#a9c98a}.iucn.LC,.iucn.DD{color:var(--muted)}
+.subhead{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--muted);padding:6px 6px 2px}
+.toast{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--panel);border:1px solid var(--gold);color:var(--fg);border-radius:6px;padding:8px 12px;max-width:min(420px,calc(100% - 32px));font-size:11px;line-height:1.5}
+
+/* right column: readout, map tools, legend */
+.rcol{position:fixed;z-index:2;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px;align-items:flex-end;max-width:280px}
+.rcol{pointer-events:none}.rcol>*{pointer-events:auto}
+.tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tool{all:unset;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.tool svg{flex:none}
+.tool[aria-pressed="true"]{border-color:var(--gold);color:var(--gold);background:rgba(40,30,10,.9)}
+.tool:focus-visible{outline:2px solid var(--gold)}
+.suntxt{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
+.suntxt b{color:var(--gold);font-weight:600}
+.legend2{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:200px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.lg{display:flex;align-items:center;gap:7px;font-size:11px}
+.lg .nm2{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg button{all:unset;cursor:pointer;font-size:10px;color:var(--muted);padding:2px 5px;border:1px solid var(--line);border-radius:3px}
+.lg button:hover{color:var(--gold);border-color:var(--gold)}
+.lg .rm{border:none;font-size:13px;padding:0 4px}
+
 /* readout */
-.readout{position:fixed;z-index:2;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));
+.readout{
   background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:9px 12px;font-variant-numeric:tabular-nums;display:grid;grid-template-columns:auto auto;gap:3px 12px;min-width:170px}
 .readout .k{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--muted);align-self:center}
 .skel{color:var(--muted);animation:pulse 1.2s ease-in-out infinite}
@@ -134,6 +164,10 @@ a{color:var(--gold)}
   .head{padding:10px 10px 8px 12px}
   h1{font-size:18px}
   .readout{display:none}
+  .rcol{top:calc(10px + env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));left:max(10px,env(safe-area-inset-left,0px));max-width:none}
+  .tool{padding:6px 8px}
+  .legend2{min-width:0;align-self:stretch}
+  .catalog{max-height:240px}
   .cesium-viewer-bottom{display:none}
   .note{display:none}
 }
@@ -161,7 +195,7 @@ a{color:var(--gold)}
   <!-- EXPLORE -->
   <div class="body" id="p-explore" role="tabpanel">
     <section>
-      <div class="lbl">Wildlife sightings <label class="tog"><input type="checkbox" id="sightOn" checked> Show</label></div>
+      <div class="lbl">Sightings heatmap <label class="tog"><input type="checkbox" id="sightOn" checked> Show</label></div>
       <div class="chips" id="groups">
         <button class="chip" data-t="1" aria-pressed="true">All animals</button>
         <button class="chip" data-t="3" aria-pressed="false">Birds</button>
@@ -171,25 +205,37 @@ a{color:var(--gold)}
         <button class="chip" data-t="47158" aria-pressed="false">Insects</button>
         <button class="chip" data-t="47178" aria-pressed="false">Fish</button>
       </div>
-      <div class="search">
-        <input type="text" id="q" placeholder="Search a species: snowy owl, moose, puffin…" autocomplete="off" aria-label="Search a species">
-        <div class="sresults" id="qres" hidden></div>
-      </div>
-      <div id="pickedBox"></div>
       <div class="row">
         <select id="month" aria-label="Month" style="flex:1"></select>
         <label class="tog"><input type="checkbox" id="rg" checked> Research grade</label>
       </div>
-      <div class="lbl">Sightings opacity <b id="sopv">85%</b></div>
+      <div class="lbl">Map color strength <b id="sopv">85%</b></div>
       <input type="range" id="sop" min="10" max="100" value="85" aria-label="Sightings opacity">
+      <div class="hint" id="heatNote" hidden>The general heatmap is hidden while species are painted on the map. Clear them to bring it back.</div>
+    </section>
+
+    <section>
+      <div class="lbl">Species finder <b id="actN"></b></div>
+      <div class="hint">Tap animals to paint where they're seen most, each in its own color. Up to 6 at once.</div>
+      <div class="chips" id="tier">
+        <button class="chip" data-v="all" aria-pressed="true">All</button>
+        <button class="chip" data-v="popular" aria-pressed="false">Popular</button>
+        <button class="chip" data-v="rare" aria-pressed="false">Rare &amp; elusive</button>
+      </div>
+      <div class="chips" id="kind">
+        <button class="chip" data-v="all" aria-pressed="true">Every kind</button>
+        <button class="chip" data-v="bird" aria-pressed="false">Birds</button>
+        <button class="chip" data-v="mammal" aria-pressed="false">Mammals</button>
+        <button class="chip" data-v="other" aria-pressed="false">Reptiles &amp; more</button>
+        <button class="chip" data-v="ct" aria-pressed="false">Connecticut</button>
+      </div>
+      <input type="text" id="q" placeholder="Filter, or search any animal…" autocomplete="off" aria-label="Filter species">
+      <div class="catalog" id="catalog" role="list"></div>
     </section>
 
     <section>
       <div class="lbl">Sunlight on the terrain</div>
-      <div class="row">
-        <input type="date" id="date" aria-label="Date" style="flex:1">
-        <label class="tog"><input type="checkbox" id="sunOn"> Real sun</label>
-      </div>
+      <input type="date" id="date" aria-label="Date">
       <div class="lbl">Time <b id="timev">—</b></div>
       <input type="range" id="time" min="0" max="1439" step="5" value="420" aria-label="Time of day">
       <div class="chips" id="timeJump">
@@ -199,8 +245,7 @@ a{color:var(--gold)}
         <button class="chip" data-j="goldPM">Golden PM</button>
         <button class="chip" data-j="sunset">Sunset</button>
       </div>
-      <label class="tog"><input type="checkbox" id="shadows"> Cast terrain shadows <span class="muted">(heavier)</span></label>
-      <div class="hint">Times are local to your pin, or to the middle of the screen when there is no pin.</div>
+      <div class="hint">Use <b>Live sun</b>, <b>Daylight</b> and <b>Shade</b> on the map to see the light. Shade shows once you zoom in closer than about 40 km. Times are local to your pin, or to the middle of the screen.</div>
     </section>
 
     <section>
@@ -285,8 +330,8 @@ a{color:var(--gold)}
       </section>
 
       <section id="selSpSec" hidden>
-        <div class="lbl">Your species near here</div>
-        <div class="card" id="selSp"></div>
+        <div class="lbl">Your painted species near here</div>
+        <div id="selSp" style="display:flex;flex-direction:column;gap:8px"></div>
       </section>
 
       <section>
@@ -309,12 +354,25 @@ a{color:var(--gold)}
   </div>
 </aside>
 
-<div class="readout" aria-live="polite">
-  <span class="k">Lat</span><div id="rlat">—</div>
-  <span class="k">Lon</span><div id="rlon">—</div>
-  <span class="k">Elev</span><div id="rel">—</div>
-  <span class="k">Alt</span><div id="ralt">—</div>
+<div class="rcol">
+  <div class="readout" aria-live="polite">
+    <span class="k">Lat</span><div id="rlat">—</div>
+    <span class="k">Lon</span><div id="rlon">—</div>
+    <span class="k">Elev</span><div id="rel">—</div>
+    <span class="k">Alt</span><div id="ralt">—</div>
+  </div>
+  <div class="tools">
+    <button class="tool" id="bLive" aria-pressed="false" title="Follow the real sun right now">
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="3" fill="currentColor"/><g stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M7 .8v1.6M7 11.6v1.6M.8 7h1.6M11.6 7h1.6M2.6 2.6l1.1 1.1M10.3 10.3l1.1 1.1M2.6 11.4l1.1-1.1M10.3 3.7l1.1-1.1"/></g></svg>Live sun</button>
+    <button class="tool" id="bDay" aria-pressed="false" title="Light the globe by the sun, with night on the far side">
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M7 1.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg>Daylight</button>
+    <button class="tool" id="bShade" aria-pressed="false" title="Cast shadows from hills and mountains">
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M1 12l4.5-7 3 4.5L10 7.5 13 12z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M5.5 5l3 4.5L7 12H1z" fill="currentColor" opacity=".55"/></svg>Shade</button>
+  </div>
+  <div class="suntxt" id="sunTxt" hidden></div>
+  <div class="legend2" id="legend" hidden></div>
 </div>
+<div class="toast" id="toast" hidden></div>
 <div id="err" hidden></div>
 
 <script>
@@ -416,6 +474,7 @@ const dpr=window.devicePixelRatio||1;viewer.resolutionScale=Math.min(dpr,2)/dpr;
 const scene=viewer.scene,globe=scene.globe,L=viewer.imageryLayers;
 globe.baseColor=C.Color.fromCssColorString("#0b1416");globe.maximumScreenSpaceError=1.6;globe.tileCacheSize=400;
 globe.depthTestAgainstTerrain=false;
+globe.lightingFadeOutDistance=1;globe.lightingFadeInDistance=2;globe.nightFadeOutDistance=1;globe.nightFadeInDistance=2;
 scene.verticalExaggeration=1.5;scene.backgroundColor=C.Color.fromCssColorString("#030506");
 scene.screenSpaceCameraController.minimumZoomDistance=120;
 scene.shadowMap.softShadows=true;scene.shadowMap.maximumDistance=40000;scene.shadowMap.darkness=.35;
@@ -440,60 +499,270 @@ buildRelief();
 
 /* ================= wildlife filter state & sightings layer ================= */
 const now=new Date();
-const F={taxon:1,species:null,month:now.getMonth()+1,rg:true,opacity:.85,show:true};
+const F={taxon:1,month:now.getMonth()+1,rg:true,opacity:.85,show:true};
 const ms=$("month");ms.innerHTML='<option value="0">All year</option>'+MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("");
 ms.value=String(F.month);
 function obsParams(extra={}){
-  const p={taxon_id:F.species?F.species.id:F.taxon,month:F.month||"",...extra};
+  const p={taxon_id:F.taxon,month:F.month||"",...extra};
   if(F.rg)p.quality_grade="research";else p.verifiable="true";
   return p;
 }
 let sightLayer=null,labelLayer=null,contourLayers=[];
 function buildSightings(){
   if(sightLayer){L.remove(sightLayer,true);sightLayer=null;}
-  if(F.show){
+  $("heatNote").hidden=!active.length;
+  if(F.show&&!active.length){
     const q=new URLSearchParams(Object.entries(obsParams()).filter(([,v])=>v!=="")).toString();
     const prov=new C.UrlTemplateImageryProvider({url:INAT+"{kind}/{z}/{x}/{y}.png?"+q,maximumLevel:16,hasAlphaChannel:true,
       customTags:{kind:(p,x,y,l)=>l<9?"colored_heatmap":"points"},credit:"Sightings: iNaturalist contributors"});
     sightLayer=L.addImageryProvider(prov);sightLayer.alpha=F.opacity;
   }
-  contourLayers.forEach(l=>L.raiseToTop(l));if(labelLayer)L.raiseToTop(labelLayer);
+  raiseOverlays();
   scene.requestRender();
 }
-buildSightings();
+function raiseOverlays(){contourLayers.forEach(l=>L.raiseToTop(l));if(labelLayer)L.raiseToTop(labelLayer);}
 
 $("groups").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   $("groups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));F.taxon=+b.dataset.t;filtersChanged();});
 ms.addEventListener("change",()=>{F.month=+ms.value;filtersChanged();});
 $("rg").addEventListener("change",e=>{F.rg=e.target.checked;filtersChanged();});
 $("sightOn").addEventListener("change",e=>{F.show=e.target.checked;buildSightings();});
-$("sop").addEventListener("input",e=>{F.opacity=e.target.value/100;$("sopv").textContent=e.target.value+"%";if(sightLayer){sightLayer.alpha=F.opacity;scene.requestRender();}});
-function filtersChanged(){buildSightings();if(pin)loadNearby();}
+$("sop").addEventListener("input",e=>{F.opacity=e.target.value/100;$("sopv").textContent=e.target.value+"%";if(sightLayer)sightLayer.alpha=F.opacity;
+  active.forEach(a=>a.layers.forEach(l=>l.alpha=Math.min(1,F.opacity+.1)));scene.requestRender();});
+function filtersChanged(){buildSightings();rebuildActive();if(pin)loadNearby();}
 
-/* species search */
-let qT=0;
-$("q").addEventListener("input",e=>{clearTimeout(qT);const v=e.target.value.trim();if(v.length<2){$("qres").hidden=true;return;}qT=setTimeout(()=>searchSp(v),300);});
-$("q").addEventListener("keydown",e=>{if(e.key==="Escape")$("qres").hidden=true;});
-document.addEventListener("click",e=>{if(!e.target.closest(".search"))$("qres").hidden=true;});
-async function searchSp(v){
-  const box=$("qres");box.hidden=false;box.innerHTML='<div class="hint skel" style="padding:8px">Searching…</div>';
-  try{const r=await inat("taxa/autocomplete",{q:v,per_page:8,is_active:"true",taxon_id:1});
-    const list=(r.results||[]).filter(t=>t.rank_level<=20||t.rank==="species");
-    if(!list.length){box.innerHTML='<div class="hint" style="padding:8px">No animals match that name.</div>';return;}
-    box.innerHTML="";list.forEach(t=>{const b=document.createElement("button");
-      b.innerHTML=`<img alt="" src="${esc(t.default_photo?.square_url||"")}"><span class="nm"><b>${esc(t.preferred_common_name||t.name)}</b><i>${esc(t.name)} · ${(t.observations_count||0).toLocaleString()} obs</i></span>`;
-      b.addEventListener("click",()=>{pickSpecies(t);box.hidden=true;$("q").value="";});box.appendChild(b);});
-  }catch(err){box.innerHTML=`<div class="hint" style="padding:8px">Search failed: ${esc(err.message)}. Try again in a moment.</div>`;}
-}
-function pickSpecies(t){
-  F.species=t?{id:t.id,name:t.preferred_common_name||t.name,sci:t.name,photo:t.default_photo?.square_url||""}:null;
-  const box=$("pickedBox");
-  if(!F.species){box.innerHTML="";}
-  else{box.innerHTML=`<div class="picked"><img alt="" src="${esc(F.species.photo)}"><span class="nm"><b>${esc(F.species.name)}</b><i>Showing only this species</i></span><button class="x" aria-label="Clear species">✕</button></div>`;
-    box.querySelector(".x").addEventListener("click",()=>pickSpecies(null));}
-  filtersChanged();
-}
+/* ================= species finder ================= */
+// [tier, kind, common name, scientific name, where, IUCN status, found in Connecticut]
+const CATALOG=[
+ ["popular","bird","Bald Eagle","Haliaeetus leucocephalus","North America","LC",1],
+ ["popular","bird","Snowy Owl","Bubo scandiacus","Arctic; winters south","VU",1],
+ ["popular","bird","Great Horned Owl","Bubo virginianus","The Americas","LC",1],
+ ["popular","bird","Barred Owl","Strix varia","North America","LC",1],
+ ["popular","bird","Atlantic Puffin","Fratercula arctica","North Atlantic","VU",0],
+ ["popular","bird","Osprey","Pandion haliaetus","Worldwide","LC",1],
+ ["popular","bird","Peregrine Falcon","Falco peregrinus","Worldwide","LC",1],
+ ["popular","bird","Red-tailed Hawk","Buteo jamaicensis","North America","LC",1],
+ ["popular","bird","Great Blue Heron","Ardea herodias","North America","LC",1],
+ ["popular","bird","Wood Duck","Aix sponsa","North America","LC",1],
+ ["popular","bird","Common Loon","Gavia immer","North America","LC",1],
+ ["popular","bird","Pileated Woodpecker","Dryocopus pileatus","North America","LC",1],
+ ["popular","bird","Northern Cardinal","Cardinalis cardinalis","Eastern North America","LC",1],
+ ["popular","bird","Eastern Bluebird","Sialia sialis","Eastern North America","LC",1],
+ ["popular","bird","Ruby-throated Hummingbird","Archilochus colubris","Eastern North America","LC",1],
+ ["popular","bird","Painted Bunting","Passerina ciris","Southern US, Mexico","LC",0],
+ ["popular","bird","Sandhill Crane","Antigone canadensis","North America","LC",0],
+ ["popular","bird","Roseate Spoonbill","Platalea ajaja","Gulf Coast to South America","LC",0],
+ ["popular","bird","American Flamingo","Phoenicopterus ruber","Caribbean","LC",0],
+ ["popular","bird","Common Kingfisher","Alcedo atthis","Europe, Asia","LC",0],
+ ["popular","bird","Keel-billed Toucan","Ramphastos sulfuratus","Central America","LC",0],
+ ["popular","bird","Scarlet Macaw","Ara macao","Central & South America","LC",0],
+ ["popular","bird","Lilac-breasted Roller","Coracias caudatus","East & southern Africa","LC",0],
+ ["popular","bird","King Penguin","Aptenodytes patagonicus","Sub-Antarctic islands","LC",0],
+ ["popular","bird","Emperor Penguin","Aptenodytes forsteri","Antarctica","NT",0],
+ ["popular","mammal","American Black Bear","Ursus americanus","North America","LC",1],
+ ["popular","mammal","Brown Bear (Grizzly)","Ursus arctos","North America, Eurasia","LC",0],
+ ["popular","mammal","Polar Bear","Ursus maritimus","Arctic","VU",0],
+ ["popular","mammal","Moose","Alces alces","Northern forests","LC",0],
+ ["popular","mammal","Elk","Cervus canadensis","Western North America","LC",0],
+ ["popular","mammal","American Bison","Bison bison","Great Plains, Yellowstone","NT",0],
+ ["popular","mammal","Gray Wolf","Canis lupus","Northern Hemisphere","LC",0],
+ ["popular","mammal","Red Fox","Vulpes vulpes","Northern Hemisphere","LC",1],
+ ["popular","mammal","Arctic Fox","Vulpes lagopus","Arctic","LC",0],
+ ["popular","mammal","Bobcat","Lynx rufus","North America","LC",1],
+ ["popular","mammal","White-tailed Deer","Odocoileus virginianus","The Americas","LC",1],
+ ["popular","mammal","Bighorn Sheep","Ovis canadensis","Western mountains","LC",0],
+ ["popular","mammal","Mountain Goat","Oreamnos americanus","Northern Rockies","LC",0],
+ ["popular","mammal","North American River Otter","Lontra canadensis","North America","LC",1],
+ ["popular","mammal","Sea Otter","Enhydra lutris","North Pacific coast","EN",0],
+ ["popular","mammal","Harbor Seal","Phoca vitulina","Northern coasts","LC",1],
+ ["popular","mammal","Humpback Whale","Megaptera novaeangliae","All oceans","LC",0],
+ ["popular","mammal","Orca","Orcinus orca","All oceans","DD",0],
+ ["popular","mammal","Lion","Panthera leo","Africa","VU",0],
+ ["popular","mammal","Leopard","Panthera pardus","Africa, Asia","VU",0],
+ ["popular","mammal","Cheetah","Acinonyx jubatus","Africa","VU",0],
+ ["popular","mammal","African Bush Elephant","Loxodonta africana","Africa","EN",0],
+ ["popular","mammal","Giraffe","Giraffa camelopardalis","Africa","VU",0],
+ ["popular","other","American Alligator","Alligator mississippiensis","Southeastern US","LC",0],
+ ["popular","other","Green Sea Turtle","Chelonia mydas","Tropical oceans","EN",0],
+ ["popular","other","Red-eyed Tree Frog","Agalychnis callidryas","Central America","LC",0],
+ ["popular","other","Monarch Butterfly","Danaus plexippus","The Americas","",1],
+ ["popular","other","Luna Moth","Actias luna","Eastern North America","",1],
+ ["rare","bird","California Condor","Gymnogyps californianus","California, Arizona, Utah","CR",0],
+ ["rare","bird","Whooping Crane","Grus americana","Central North America","EN",0],
+ ["rare","bird","Harpy Eagle","Harpia harpyja","Central & South America","VU",0],
+ ["rare","bird","Philippine Eagle","Pithecophaga jefferyi","Philippines","CR",0],
+ ["rare","bird","Steller's Sea Eagle","Haliaeetus pelagicus","Russian Far East, Japan","VU",0],
+ ["rare","bird","Shoebill","Balaeniceps rex","Central & East Africa","VU",0],
+ ["rare","bird","Resplendent Quetzal","Pharomachrus mocinno","Central America cloud forest","NT",0],
+ ["rare","bird","Hyacinth Macaw","Anodorhynchus hyacinthinus","Pantanal, Brazil","VU",0],
+ ["rare","bird","Andean Condor","Vultur gryphus","Andes","VU",0],
+ ["rare","bird","Kakapo","Strigops habroptilus","New Zealand islands","CR",0],
+ ["rare","bird","Spoon-billed Sandpiper","Calidris pygmaea","East Asia","CR",0],
+ ["rare","bird","Blakiston's Fish Owl","Ketupa blakistoni","Russian Far East, Hokkaido","EN",0],
+ ["rare","bird","Great Gray Owl","Strix nebulosa","Boreal forest","LC",0],
+ ["rare","bird","Northern Hawk Owl","Surnia ulula","Boreal forest","LC",0],
+ ["rare","bird","Northern Saw-whet Owl","Aegolius acadicus","North America","LC",1],
+ ["rare","bird","Gyrfalcon","Falco rusticolus","Arctic","LC",0],
+ ["rare","bird","Ivory Gull","Pagophila eburnea","High Arctic","NT",0],
+ ["rare","bird","Short-eared Owl","Asio flammeus","Open country worldwide","LC",1],
+ ["rare","bird","Piping Plover","Charadrius melodus","Atlantic & Great Lakes beaches","NT",1],
+ ["rare","bird","Saltmarsh Sparrow","Ammospiza caudacuta","Atlantic salt marshes","EN",1],
+ ["rare","bird","Kirtland's Warbler","Setophaga kirtlandii","Michigan; winters Bahamas","NT",0],
+ ["rare","mammal","Snow Leopard","Panthera uncia","Central Asian mountains","VU",0],
+ ["rare","mammal","Tiger","Panthera tigris","India, Southeast Asia, Russia","EN",0],
+ ["rare","mammal","Jaguar","Panthera onca","Central & South America","NT",0],
+ ["rare","mammal","Mountain Lion","Puma concolor","The Americas","LC",0],
+ ["rare","mammal","Canada Lynx","Lynx canadensis","Boreal North America","LC",0],
+ ["rare","mammal","Pallas's Cat","Otocolobus manul","Central Asian steppe","LC",0],
+ ["rare","mammal","Wolverine","Gulo gulo","Arctic & boreal","LC",0],
+ ["rare","mammal","Fisher","Pekania pennanti","Northern forests","LC",1],
+ ["rare","mammal","Black-footed Ferret","Mustela nigripes","Great Plains","EN",0],
+ ["rare","mammal","African Wild Dog","Lycaon pictus","Southern & East Africa","EN",0],
+ ["rare","mammal","Ethiopian Wolf","Canis simensis","Ethiopian highlands","EN",0],
+ ["rare","mammal","Mountain Gorilla","Gorilla beringei","Rwanda, Uganda, DR Congo","EN",0],
+ ["rare","mammal","Bornean Orangutan","Pongo pygmaeus","Borneo","CR",0],
+ ["rare","mammal","Red Panda","Ailurus fulgens","Himalaya","EN",0],
+ ["rare","mammal","Giant Panda","Ailuropoda melanoleuca","Sichuan, China","VU",0],
+ ["rare","mammal","Black Rhinoceros","Diceros bicornis","Southern & East Africa","CR",0],
+ ["rare","mammal","Okapi","Okapia johnstoni","DR Congo","EN",0],
+ ["rare","mammal","Fossa","Cryptoprocta ferox","Madagascar","VU",0],
+ ["rare","mammal","Narwhal","Monodon monoceros","High Arctic","LC",0],
+ ["rare","mammal","Temminck's Pangolin","Smutsia temminckii","Southern & East Africa","VU",0],
+ ["rare","other","Komodo Dragon","Varanus komodoensis","Komodo, Indonesia","EN",0],
+ ["rare","other","Leatherback Sea Turtle","Dermochelys coriacea","All oceans","VU",0],
+ ["rare","other","Timber Rattlesnake","Crotalus horridus","Eastern US","LC",1],
+ ["rare","other","Eastern Hellbender","Cryptobranchus alleganiensis","Appalachian streams","VU",0],
+ ["rare","other","Whale Shark","Rhincodon typus","Tropical oceans","EN",0]
+].map(([tier,kind,name,sci,where,iucn,ct])=>({tier,kind,name,sci,where,iucn,ct:!!ct}));
+const IUCN={CR:"Critically endangered",EN:"Endangered",VU:"Vulnerable",NT:"Near threatened",LC:"Least concern",DD:"Data deficient"};
+const PALETTE=["#ffd23f","#3ee0d0","#ff5fa2","#9be15d","#ff8c42","#b48cff"];
+let active=store.get("wl.active",[]).filter(a=>a&&a.id&&a.color).slice(0,6).map(a=>({...a,layers:[]}));
+let finder={tier:"all",kind:"all",q:""};
+const isActive=id=>active.some(a=>a.id===id);
+const toastEl=$("toast");let toastT=0;
+function toast(m,ms=3800){toastEl.textContent=m;toastEl.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>toastEl.hidden=true,ms);}
 
+function saveActive(){store.set("wl.active",active.map(({id,name,sci,color,photo})=>({id,name,sci,color,photo})));}
+function makeLayers(a){
+  a.layers.forEach(l=>L.remove(l,true));
+  const q=new URLSearchParams(Object.entries(obsParams({taxon_id:a.id})).filter(([,v])=>v!=="")).toString()+"&color="+encodeURIComponent(a.color);
+  const grid=L.addImageryProvider(new C.UrlTemplateImageryProvider({url:INAT+"grid/{z}/{x}/{y}.png?"+q,maximumLevel:6,hasAlphaChannel:true,credit:"Sightings: iNaturalist contributors"}));
+  const pts=new C.UrlTemplateImageryProvider({url:INAT+"points/{z}/{x}/{y}.png?"+q,maximumLevel:16,hasAlphaChannel:true});
+  const o=pts.requestImage.bind(pts);pts.requestImage=(x,y,l,r)=>l<9?Promise.resolve(blank):o(x,y,l,r);
+  const ptl=L.addImageryProvider(pts);
+  a.layers=[grid,ptl];a.layers.forEach(l=>l.alpha=Math.min(1,F.opacity+.1));
+}
+function rebuildActive(){active.forEach(makeLayers);raiseOverlays();gridSwitch();scene.requestRender();}
+function gridSwitch(){const h=viewer.camera.positionCartographic.height,g=h>120000;active.forEach(a=>{if(a.layers[0]&&a.layers[0].show!==g){a.layers[0].show=g;scene.requestRender();}});}
+
+async function resolveTaxon(e){
+  const cache=store.get("wl.tx",{});if(cache[e.sci])return cache[e.sci];
+  const pick=list=>{const lc=x=>(x||"").toLowerCase();
+    return list.find(t=>lc(t.name)===lc(e.sci))||list.find(t=>lc(t.preferred_common_name)===lc(e.name.replace(/\s*\(.*\)/,"")))||list.find(t=>t.rank==="species");};
+  let r=await inat("taxa/autocomplete",{q:e.sci,per_page:10,taxon_id:1});let t=pick(r.results||[]);
+  if(!t){r=await inat("taxa/autocomplete",{q:e.name.replace(/\s*\(.*\)/,""),per_page:10,taxon_id:1});t=pick(r.results||[]);}
+  if(!t)throw new Error("not found on iNaturalist");
+  const v={id:t.id,photo:t.default_photo?.square_url||""};cache[e.sci]=v;store.set("wl.tx",cache);return v;
+}
+function addSpecies(t){
+  if(isActive(t.id))return;
+  if(active.length>=6){toast("You can paint 6 species at once. Remove one from the key on the map first.");return;}
+  const used=active.map(a=>a.color),color=PALETTE.find(c=>!used.includes(c));
+  const a={id:t.id,name:t.name,sci:t.sci,photo:t.photo||"",color,layers:[]};active.push(a);
+  makeLayers(a);raiseOverlays();gridSwitch();saveActive();buildSightings();renderLegend();renderCatalog();if(pin)renderActiveNear(+$("radius").value);
+}
+function removeSpecies(id){
+  const i=active.findIndex(a=>a.id===id);if(i<0)return;active[i].layers.forEach(l=>L.remove(l,true));active.splice(i,1);
+  saveActive();buildSightings();renderLegend();renderCatalog();if(pin)renderActiveNear(+$("radius").value);scene.requestRender();
+}
+async function toggleCatalog(e,btn){
+  const hit=active.find(a=>a.sci===e.sci);if(hit){removeSpecies(hit.id);return;}
+  btn.querySelector(".nm i").textContent="Finding on iNaturalist…";
+  try{const v=await resolveTaxon(e);addSpecies({id:v.id,name:e.name,sci:e.sci,photo:v.photo});}
+  catch(err){toast(`Couldn't load ${e.name}: ${err.message}.`);renderCatalog();}
+}
+function renderLegend(){
+  const box=$("legend");box.hidden=!active.length;$("actN").textContent=active.length?active.length+" of 6 on map":"";
+  box.innerHTML=active.map(a=>`<div class="lg" data-id="${a.id}"><span class="sw" style="background:${a.color};border-color:${a.color}"></span><span class="nm2" title="${esc(a.name)}">${esc(a.name)}</span><button data-a="hot" title="Fly to where it's been seen most">Hotspot</button><button class="rm" data-a="rm" aria-label="Remove ${esc(a.name)}">✕</button></div>`).join("");
+  box.querySelectorAll(".lg").forEach(r=>{const id=+r.dataset.id;
+    r.querySelector('[data-a="rm"]').addEventListener("click",()=>removeSpecies(id));
+    r.querySelector('[data-a="hot"]').addEventListener("click",()=>hotspot(active.find(a=>a.id===id)));});
+}
+async function hotspot(a){
+  if(!a)return;toast(`Finding where ${a.name} has been seen most…`,8000);
+  try{
+    const p={taxon_id:a.id,per_page:200,order_by:"observed_on",order:"desc",month:F.month||""};if(F.rg)p.quality_grade="research";else p.verifiable="true";
+    const r=await inat("observations",p);const cells=new Map();
+    (r.results||[]).forEach(o=>{if(!o.location)return;const [la,lo]=o.location.split(",").map(Number);const k=Math.round(la)+","+Math.round(lo);
+      const c=cells.get(k)||{n:0,la:0,lo:0};c.n++;c.la+=la;c.lo+=lo;cells.set(k,c);});
+    if(!cells.size){toast(`No mapped sightings of ${a.name}${F.month?" in "+MONTHS[F.month-1]:""}. Try "All year".`);return;}
+    const best=[...cells.values()].sort((x,y)=>y.n-x.n)[0],la=best.la/best.n,lo=best.lo/best.n;
+    toast(`${a.name}: ${best.n} of the latest ${r.results.length} sightings${F.month?" in "+MONTHS[F.month-1]:""} are in this area. Tap the map to scout it.`,6000);
+    flyTo(lo,la,120000,-50,0);
+  }catch(err){toast(`Couldn't reach iNaturalist: ${err.message}.`);}
+}
+function catRow(e){
+  const a=active.find(x=>x.sci===e.sci),b=document.createElement("button");b.className="cat";b.setAttribute("aria-pressed",!!a);b.setAttribute("role","listitem");
+  b.innerHTML=`<span class="sw" style="${a?`background:${a.color};border-color:${a.color}`:""}"></span><span class="nm"><b>${esc(e.name)}</b><i>${esc(e.sci)}</i></span>
+    <span class="meta"><span>${esc(e.where)}</span>${e.iucn?`<span class="iucn ${e.iucn}" title="${IUCN[e.iucn]}">${e.iucn==="LC"?"Common":esc(IUCN[e.iucn])}</span>`:""}</span>`;
+  b.addEventListener("click",()=>toggleCatalog(e,b));return b;
+}
+let moreSeq=0,moreT=0;
+function renderCatalog(){
+  const box=$("catalog"),q=finder.q.toLowerCase();
+  const list=CATALOG.filter(e=>(finder.tier==="all"||e.tier===finder.tier)&&(finder.kind==="all"||(finder.kind==="ct"?e.ct:e.kind===finder.kind))
+    &&(!q||(e.name+" "+e.sci+" "+e.where).toLowerCase().includes(q)));
+  box.innerHTML="";
+  const sect=(title,items)=>{if(!items.length)return;const h=document.createElement("div");h.className="subhead";h.textContent=title;box.appendChild(h);items.forEach(e=>box.appendChild(catRow(e)));};
+  if(finder.tier==="all"){sect("Popular",list.filter(e=>e.tier==="popular"));sect("Rare & elusive",list.filter(e=>e.tier==="rare"));}
+  else sect(finder.tier==="popular"?"Popular":"Rare & elusive",list);
+  // painted species that aren't in the catalog
+  const extra=active.filter(a=>!CATALOG.some(e=>e.sci===a.sci));
+  if(extra.length&&!q){const h=document.createElement("div");h.className="subhead";h.textContent="Your other species";box.appendChild(h);
+    extra.forEach(a=>{const b=document.createElement("button");b.className="cat";b.setAttribute("aria-pressed","true");
+      b.innerHTML=`<span class="sw" style="background:${a.color};border-color:${a.color}"></span><span class="nm"><b>${esc(a.name)}</b><i>${esc(a.sci)}</i></span>`;
+      b.addEventListener("click",()=>removeSpecies(a.id));box.appendChild(b);});}
+  const more=document.createElement("div");more.id="more";box.appendChild(more);
+  if(!list.length&&!q)box.insertAdjacentHTML("afterbegin",'<div class="hint" style="padding:6px">Nothing in this filter.</div>');
+  clearTimeout(moreT);if(q.length>=3)moreT=setTimeout(()=>searchMore(finder.q,list.length),350);
+  else if(!list.length)more.innerHTML='<div class="hint" style="padding:6px">Type at least 3 letters to search every animal on iNaturalist.</div>';
+}
+async function searchMore(q,shown){
+  const my=++moreSeq,box=$("more");if(!box)return;box.innerHTML='<div class="subhead">More from iNaturalist</div><div class="hint skel" style="padding:6px">Searching…</div>';
+  try{const r=await inat("taxa/autocomplete",{q,per_page:10,taxon_id:1,is_active:"true"});if(my!==moreSeq||!$("more"))return;
+    const res=(r.results||[]).filter(t=>t.rank_level<=10&&!CATALOG.some(e=>e.sci.toLowerCase()===t.name.toLowerCase()));
+    const b=$("more");b.innerHTML='<div class="subhead">More from iNaturalist</div>';
+    if(!res.length){b.insertAdjacentHTML("beforeend",`<div class="hint" style="padding:6px">${shown?"No other matches.":"No animals match that name."}</div>`);return;}
+    res.forEach(t=>{const on=isActive(t.id),a=active.find(x=>x.id===t.id),btn=document.createElement("button");btn.className="cat";btn.setAttribute("aria-pressed",on);
+      btn.innerHTML=`<span class="sw" style="${a?`background:${a.color};border-color:${a.color}`:""}"></span><img alt="" src="${esc(t.default_photo?.square_url||"")}" style="width:30px;height:30px;border-radius:4px;object-fit:cover;flex:none"><span class="nm"><b>${esc(t.preferred_common_name||t.name)}</b><i>${esc(t.name)}</i></span><span class="meta">${(t.observations_count||0).toLocaleString()} sightings</span>`;
+      btn.addEventListener("click",()=>on?removeSpecies(t.id):addSpecies({id:t.id,name:t.preferred_common_name||t.name,sci:t.name,photo:t.default_photo?.square_url||""}));
+      b.appendChild(btn);});
+  }catch(err){if(my===moreSeq&&$("more"))$("more").innerHTML=`<div class="hint" style="padding:6px">Search failed: ${esc(err.message)}.</div>`;}
+}
+const chipSet=(id,key)=>$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  $(id).querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));finder[key]=b.dataset.v;renderCatalog();});
+chipSet("tier","tier");chipSet("kind","kind");
+$("q").addEventListener("input",e=>{finder.q=e.target.value.trim();renderCatalog();});
+
+/* painted species in the scout report */
+function monthBars(vals,cur){const max=Math.max(1,...vals);return `<div class="months">${vals.map((v,i)=>`<div class="${i+1===cur?"on":""}" style="height:${Math.max(3,v/max*100)}%" title="${MONTHS[i]}: ${v}"></div>`).join("")}</div><div class="mlab">${MONTHS.map(m=>`<span>${m[0]}</span>`).join("")}</div>`;}
+let actSeq=0;
+function renderActiveNear(rad){
+  const sec=$("selSpSec"),box=$("selSp");sec.hidden=!active.length||!pin;if(sec.hidden)return;
+  const my=++actSeq,r2=Math.max(rad,25),cur=F.month||(now.getMonth()+1);
+  box.innerHTML="";
+  active.forEach(a=>{const c=document.createElement("div");c.className="card";
+    c.innerHTML=`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span class="row" style="flex-wrap:nowrap;min-width:0"><span class="sw" style="background:${a.color};border-color:${a.color}"></span><span class="nm"><b>${esc(a.name)}</b><i class="cnt">Checking within ${r2} km…</i></span></span><button class="btn ghost" data-a="ph">Photos</button></div><div class="bars"></div>`;
+    c.querySelector('[data-a="ph"]').addEventListener("click",()=>{const d=$("spDetail");d.hidden=false;showSpecies(d,{id:a.id,name:a.name,sci:a.sci,photo:a.photo},rad,true);d.scrollIntoView({block:"nearest",behavior:reduce?"auto":"smooth"});});
+    box.appendChild(c);
+    inat("observations/histogram",{taxon_id:a.id,lat:pin.lat.toFixed(5),lng:pin.lng.toFixed(5),radius:r2,interval:"month_of_year",verifiable:"true",date_field:"observed"}).then(h=>{
+      if(my!==actSeq)return;const mo=h.results?.month_of_year||{},vals=MONTHS.map((_,i)=>mo[i+1]||mo[String(i+1)]||0),tot=vals.reduce((x,y)=>x+y,0);
+      const top=vals.map((v,i)=>[v,i]).sort((x,y)=>y[0]-x[0]).filter(x=>x[0]>0).slice(0,3).map(x=>MONTHS[x[1]]);
+      c.querySelector(".cnt").textContent=tot?`${tot.toLocaleString()} sightings within ${r2} km · best ${top.join(", ")}`:`Not recorded within ${r2} km`;
+      if(tot)c.querySelector(".bars").innerHTML=monthBars(vals,cur);
+    }).catch(err=>{if(my===actSeq)c.querySelector(".cnt").textContent="Couldn't check: "+err.message;});
+  });
+}
 /* map toggles */
 $("mix").addEventListener("input",e=>{mixVal=e.target.value/100;applyMix();});
 $("ex").addEventListener("input",e=>{const v=e.target.value/10;$("exv").textContent=v.toFixed(1)+"×";scene.verticalExaggeration=Math.max(v,.0001);scene.requestRender();});
@@ -536,24 +805,64 @@ function guessOffset(lng){return Math.round(lng/15)*3600;}
 /* time slider + real sun */
 $("date").value=$("date2").value=S.date;
 function setDate(v){if(!v)return;S.date=v;$("date").value=$("date2").value=v;refreshLight();if(pin){renderLight();renderFcSel();}}
-$("date").addEventListener("change",e=>setDate(e.target.value));
-$("date2").addEventListener("change",e=>setDate(e.target.value));
+$("date").addEventListener("change",e=>{setLive(false);setDate(e.target.value);});
+$("date2").addEventListener("change",e=>{setLive(false);setDate(e.target.value);});
 function shiftDay(n){const [y,m,d]=S.date.split("-").map(Number);const t=new Date(y,m-1,d+n);setDate(ymd(t));}
-$("dPrev").addEventListener("click",()=>shiftDay(-1));$("dNext").addEventListener("click",()=>shiftDay(1));
+$("dPrev").addEventListener("click",()=>{setLive(false);shiftDay(-1);});$("dNext").addEventListener("click",()=>{setLive(false);shiftDay(1);});
 $("time").value=S.min;
-$("time").addEventListener("input",e=>{S.min=+e.target.value;refreshLight();});
+$("time").addEventListener("input",e=>{setLive(false);S.min=+e.target.value;refreshLight();});
 $("timeJump").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const c=lightCenter();if(!c)return;
   const t=lightFor(c.lat,c.lng),map={blueAM:t.dawn,sunrise:t.sunrise,noon:t.solarNoon,goldPM:t.goldenHour,sunset:t.sunset};
-  const d=map[b.dataset.j];if(!ok(d))return;S.min=minOf(d,S.off);$("time").value=S.min;refreshLight();});
-$("sunOn").addEventListener("change",e=>{globe.enableLighting=e.target.checked;refreshLight();});
-$("shadows").addEventListener("change",e=>{viewer.shadows=e.target.checked;viewer.terrainShadows=e.target.checked?C.ShadowMode.ENABLED:C.ShadowMode.DISABLED;
-  if(e.target.checked&&!$("sunOn").checked){$("sunOn").checked=true;globe.enableLighting=true;}refreshLight();});
+  const d=map[b.dataset.j];if(!ok(d))return;setLive(false);S.min=minOf(d,S.off);$("time").value=S.min;refreshLight();});
+/* ================= live sun, daylight, shade ================= */
+let live=false,liveTimer=0;
+function subsolar(d){
+  const n=d.getTime()/86400000+2440587.5-2451545.0,rad=Math.PI/180;
+  const Lm=(280.460+0.9856474*n)%360,g=((357.528+0.9856003*n)%360)*rad,lam=(Lm+1.915*Math.sin(g)+0.020*Math.sin(2*g))*rad,eps=(23.439-0.0000004*n)*rad;
+  const dec=Math.asin(Math.sin(eps)*Math.sin(lam)),ra=Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam))/rad,gmst=(280.46061837+360.98564736629*n)%360;
+  let lng=((ra-gmst)%360+540)%360-180;return {lat:dec/rad,lng};
+}
+const sunCanvas=(()=>{const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");
+  const gr=g.createRadialGradient(32,32,4,32,32,32);gr.addColorStop(0,"rgba(255,244,200,1)");gr.addColorStop(.3,"rgba(255,206,90,.95)");gr.addColorStop(.6,"rgba(255,170,40,.35)");gr.addColorStop(1,"rgba(255,150,30,0)");
+  g.fillStyle=gr;g.beginPath();g.arc(32,32,32,0,7);g.fill();return c;})();
+const sunEnt=viewer.entities.add({position:C.Cartesian3.fromDegrees(0,0,30000),show:false,billboard:{image:sunCanvas,width:46,height:46}});
+function updateSunMarker(when){if(!globe.enableLighting){sunEnt.show=false;return;}const p=subsolar(when);sunEnt.position=C.Cartesian3.fromDegrees(p.lng,p.lat,30000);sunEnt.show=true;}
+function tickLive(force){
+  const x=new Date(Date.now()+S.off*1000),d=x.toISOString().slice(0,10);
+  S.min=x.getUTCHours()*60+x.getUTCMinutes();$("time").value=S.min;
+  if(d!==S.date)setDate(d);else refreshLight();
+  if(force&&pin)drawPin();
+}
+function setLive(on){
+  if(on===live)return;live=on;$("bLive").setAttribute("aria-pressed",on);clearInterval(liveTimer);
+  if(on){if(!globe.enableLighting)setDaylight(true);tickLive(true);liveTimer=setInterval(()=>tickLive(false),30000);
+    toast("Live sun: the globe now follows the real sun, updating every 30 seconds.");}
+  else refreshLight();
+}
+function setDaylight(on){
+  globe.enableLighting=on;$("bDay").setAttribute("aria-pressed",on);
+  if(!on){setShade(false);setLive(false);}
+  refreshLight();
+}
+function setShade(on){
+  viewer.shadows=on;viewer.terrainShadows=on?C.ShadowMode.ENABLED:C.ShadowMode.DISABLED;$("bShade").setAttribute("aria-pressed",on);
+  if(on&&!globe.enableLighting)setDaylight(true);
+  if(on&&viewer.camera.positionCartographic.height>60000)toast("Shade is on. Zoom in closer than about 40 km to see hills and mountains cast shadows.");
+  scene.requestRender();
+}
+$("bLive").addEventListener("click",()=>setLive(!live));
+$("bDay").addEventListener("click",()=>setDaylight(!globe.enableLighting));
+$("bShade").addEventListener("click",()=>setShade(!viewer.shadows));
+
 function refreshLight(){
   const when=utcAt(S.date,S.min,S.off);viewer.clock.currentTime=C.JulianDate.fromDate(when);
   const c=lightCenter();let extra="";
   if(c){const p=SunCalc.getPosition(when,c.lat,c.lng),alt=p.altitude*180/Math.PI,b=bearingOf(when,c.lat,c.lng);
     extra=alt>1?` · sun ${Math.round(alt)}° high, ${compass(b)}`:alt>-1.2?` · sun on the horizon, ${compass(b)}`:alt>-6?" · twilight":" · dark";}
-  $("timev").textContent=fmtT(when,S.off)+extra;
+  $("timev").textContent=(live?"Live · ":"")+fmtT(when,S.off)+extra;
+  const st=$("sunTxt");st.hidden=!globe.enableLighting;
+  if(globe.enableLighting)st.innerHTML=(live?"<b>Live</b> · ":"")+esc(fmtT(when,S.off))+esc(extra);
+  updateSunMarker(when);
   drawSunNow();scene.requestRender();
 }
 
@@ -593,7 +902,7 @@ function drawPin(){
 let scoutSeq=0,fcData=null;
 async function scout(lat,lng,name){
   pin={lat,lng,len:rayLen(),name:name||""};const my=++scoutSeq;
-  S.off=guessOffset(lng);S.offExact=false;
+  S.off=guessOffset(lng);S.offExact=false;if(live)tickLive(true);
   $("scoutEmpty").hidden=true;$("scoutBody").hidden=false;$("spDetail").hidden=true;
   $("pinLL").textContent=lat.toFixed(5)+", "+lng.toFixed(5);
   $("mapsLink").href="https://www.google.com/maps/dir/?api=1&destination="+lat.toFixed(6)+","+lng.toFixed(6);
@@ -608,7 +917,7 @@ async function scout(lat,lng,name){
       hourly:"cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation_probability",
       daily:"sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max",temperature_unit:"fahrenheit"});
     const r=await fetch(u);if(!r.ok)throw new Error("forecast service returned "+r.status);const j=await r.json();if(my!==scoutSeq)return;
-    S.off=j.utc_offset_seconds;S.offExact=true;fcData=j;
+    S.off=j.utc_offset_seconds;S.offExact=true;fcData=j;if(live)tickLive(true);
     renderLight();drawPin();refreshLight();renderFc();
   }catch(err){if(my!==scoutSeq)return;$("fc").innerHTML=`<div class="hint" style="grid-column:1/-1">Sky forecast unavailable: ${esc(err.message)}.</div>`;}
 }
@@ -682,7 +991,7 @@ async function loadNearby(){
   $("nearNote").textContent=`${F.taxon===1?"Animals":grp[0].toUpperCase()+grp.slice(1)} photographed within ${rad} km${F.month?" in "+MONTHS[F.month-1]:""}, most-seen first. Tap one for its best months.`;
   box.innerHTML='<div class="skel">Checking iNaturalist…</div>';
   // selected species card
-  if(F.species){$("selSpSec").hidden=false;showSpecies($("selSp"),{id:F.species.id,name:F.species.name,sci:F.species.sci},rad,true);}else $("selSpSec").hidden=true;
+  renderActiveNear(rad);
   try{
     const p={lat:pin.lat.toFixed(5),lng:pin.lng.toFixed(5),radius:rad,taxon_id:F.taxon,month:F.month||"",per_page:25,locale:"en"};
     if(F.rg)p.quality_grade="research";else p.verifiable="true";
@@ -701,12 +1010,12 @@ $("radius").addEventListener("change",loadNearby);
 async function showSpecies(el,t,rad,isSel){
   const r2=Math.max(rad,25);
   el.innerHTML=`<div class="row" style="justify-content:space-between"><span class="nm"><b>${esc(t.name)}</b><i>${esc(t.sci)}</i></span>
-    ${isSel?"":`<button class="btn" data-act="map">Map it</button>`}</div>
+    ${isActive(t.id)?"":`<button class="btn" data-act="map">Paint on map</button>`}</div>
     <div class="lbl">Sightings by month <span class="muted">within ${r2} km</span></div>
     <div class="months skel" style="height:64px"></div><div class="mlab">${MONTHS.map(m=>`<span>${m[0]}</span>`).join("")}</div>
     <div class="hint best"></div><div class="lbl">Latest photos</div><div class="photos"><div class="skel">Loading…</div></div>`;
   const mb=el.querySelector('[data-act="map"]');
-  if(mb)mb.addEventListener("click",()=>pickSpecies({id:t.id,preferred_common_name:t.name,name:t.sci,default_photo:{square_url:t.photo||""}}));
+  if(mb)mb.addEventListener("click",()=>{addSpecies({id:t.id,name:t.name,sci:t.sci,photo:t.photo||""});mb.remove();});
   const base={taxon_id:t.id,lat:pin.lat.toFixed(5),lng:pin.lng.toFixed(5)};
   try{
     const h=await inat("observations/histogram",{...base,radius:r2,interval:"month_of_year",verifiable:"true",date_field:"observed"});
@@ -768,7 +1077,7 @@ function flyTo(lon,lat,range,pitch,heading,cb){
 }
 $("fly").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
   const [lon,lat]=b.dataset.ll.split(",").map(Number),r=+b.dataset.r,g=b.dataset.g;
-  const gb=$("groups").querySelector(`[data-t="${g}"]`);if(gb&&!F.species){$("groups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===gb));F.taxon=+g;buildSightings();}
+  const gb=$("groups").querySelector(`[data-t="${g}"]`);if(gb&&!active.length){$("groups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===gb));F.taxon=+g;buildSightings();}
   flyTo(lon,lat,r,+b.dataset.p,+b.dataset.h,()=>{if(r<200000)scout(lat,lon,b.textContent.trim());});
 });
 function pickLL(pos){const ray=viewer.camera.getPickRay(pos);if(!ray)return null;const c=globe.pick(ray,scene);if(!c)return null;
@@ -781,9 +1090,10 @@ hnd.setInputAction(m=>{clearTimeout(mt);const p=C.Cartesian2.clone(m.endPosition
   const my=++rseq;if(Math.abs(ll.lat)>85){$("rel").textContent="—";return;}const h=await heightAt(ll.lng,ll.lat,13);if(my===rseq)$("rel").textContent=h==null?"—":Math.round(h).toLocaleString()+" m";},70);},C.ScreenSpaceEventType.MOUSE_MOVE);
 function altText(){const a=viewer.camera.positionCartographic.height;$("ralt").textContent=a>10000?Math.round(a/1000).toLocaleString()+" km":Math.round(a).toLocaleString()+" m";}
 viewer.camera.percentageChanged=.05;
-viewer.camera.changed.addEventListener(()=>{altText();if(!pin)refreshLight();});
+viewer.camera.changed.addEventListener(()=>{altText();if(!pin)refreshLight();gridSwitch();});
 
 /* ================= start ================= */
+rebuildActive();buildSightings();renderLegend();renderCatalog();
 viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-50,25,22000000)});altText();refreshLight();
 viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-72.7,42,12500000),duration:reduce?0:2.5,complete:refreshLight});
 })();
