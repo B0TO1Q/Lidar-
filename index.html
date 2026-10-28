@@ -234,6 +234,37 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
 .empty{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px dashed var(--line);border-radius:8px}
 .empty b{font-weight:600}
 
+/* today */
+.hero{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}
+.ring{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:24px;
+  background:radial-gradient(closest-side,var(--raise) 79%,transparent 80% 100%),conic-gradient(var(--c) calc(var(--v)*1%),var(--line) 0)}
+.hero .when{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.02em;line-height:1.2}
+.hero .who{display:flex;align-items:center;gap:6px;margin-top:3px}
+.why{display:flex;flex-wrap:wrap;gap:5px;grid-column:1/-1}
+.why span{font-size:10.5px;padding:3px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line)}
+.why span.bad{color:var(--bad);border-color:rgba(224,117,99,.4)}
+.wk{display:grid;grid-template-columns:58px repeat(7,minmax(0,1fr));gap:3px;align-items:center;font-variant-numeric:tabular-nums}
+.wk .h{font-family:var(--display);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center}
+.wk .rl{font-family:var(--display);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.wk button{all:unset;cursor:pointer;text-align:center;border-radius:6px;padding:7px 0;font-weight:600;font-size:11px;color:var(--gold-ink)}
+.wk button[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:1px}
+.wk button:focus-visible{outline:2px solid var(--gold)}
+.wk .na{color:var(--muted);text-align:center;font-size:10px}
+.wrow{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:7px}
+.wrow:hover{background:var(--hover)}
+.wrow .sc{width:34px;height:24px;border-radius:6px;display:grid;place-items:center;font-weight:700;font-size:11px;color:var(--gold-ink);flex:none}
+.howto{font-size:10.5px;color:var(--muted);line-height:1.6}
+/* live sightings card */
+.obscard{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));width:min(380px,calc(100% - 24px));border-radius:12px;padding:10px;display:grid;grid-template-columns:84px 1fr;gap:10px}
+.obscard img,.obscard .ph{width:84px;height:84px;border-radius:8px;object-fit:cover;background:var(--raise)}
+.obscard .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.obscard .tx b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.obscard .row{grid-column:1/-1}
+.livedot{width:8px;height:8px;border-radius:50%;background:var(--bad);position:absolute;top:9px;right:9px;box-shadow:0 0 0 0 rgba(224,117,99,.6);animation:ping 1.8s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 7px rgba(224,117,99,0)}100%{box-shadow:0 0 0 0 rgba(224,117,99,0)}}
+.cbtn:not([aria-pressed="true"]) .livedot{display:none}
+@media (min-width:721px){.obscard{left:calc(var(--panelW) + 40px);transform:none;right:auto}}
+
 /* readout, toast, coach */
 .readout{position:fixed;z-index:3;right:max(var(--gap),env(safe-area-inset-right,0px));bottom:calc(var(--gap) + env(safe-area-inset-bottom,0px));border-radius:999px;padding:6px 12px;font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;gap:10px}
 .readout b{color:var(--fg);font-weight:400}
@@ -279,6 +310,8 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
   .advbtn .lb::after{content:"More";font-size:11px}
   .toast{bottom:calc(var(--sheet-px,120px) + 12px)}
   .subhead{top:-14px}
+  .tabs button{font-size:10px;letter-spacing:.03em;padding:7px 0}
+  .obscard{bottom:calc(var(--sheet-px,120px) + 12px)}
 }
 </style>
 </head>
@@ -302,6 +335,8 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
 <!-- map controls -->
 <div class="ctrls">
   <div class="cgroup glass">
+    <button class="cbtn" id="cLive" aria-pressed="false" aria-label="Live sightings"><span class="tip">Live sightings · last 3 days</span><span class="livedot"></span>
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="2.4" fill="currentColor"/><path d="M5.2 12.8a5.4 5.4 0 0 1 0-7.6M12.8 5.2a5.4 5.4 0 0 1 0 7.6M2.9 15.1a8.6 8.6 0 0 1 0-12.2M15.1 2.9a8.6 8.6 0 0 1 0 12.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
     <button class="cbtn" id="cLocate" aria-label="Go to my location"><span class="tip">My location</span>
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="3" fill="currentColor"/><circle cx="9" cy="9" r="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 .8v2.4M9 14.8v2.4M.8 9h2.4M14.8 9h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     <button class="cbtn" id="cCompass" aria-label="Face north and switch between flat and 3D view"><span class="tip" id="compTip">North up · flat view</span>
@@ -347,8 +382,9 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
   <div class="grab" id="grab" aria-hidden="true"><span></span></div>
   <div class="tabbar" id="tabbar">
     <div class="tabs" role="tablist">
-      <button role="tab" id="t-wild" aria-selected="true" data-tab="wild">Wildlife<span class="badge" id="wildN" hidden></span></button>
-      <button role="tab" id="t-scout" aria-selected="false" data-tab="scout" hidden>Spot</button>
+      <button role="tab" id="t-today" aria-selected="false" data-tab="today">Today</button>
+      <button role="tab" id="t-wild" aria-selected="true" data-tab="wild">Animals<span class="badge" id="wildN" hidden></span></button>
+      <button role="tab" id="t-scout" aria-selected="false" data-tab="scout" hidden>Pin</button>
       <button role="tab" id="t-light" aria-selected="false" data-tab="light">Light</button>
       <button role="tab" class="adv" id="t-spots" aria-selected="false" data-tab="spots">Spots<span class="badge" id="spotN" hidden></span></button>
     </div>
@@ -356,6 +392,32 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
     <button class="iconbtn" id="hide" aria-expanded="true" aria-controls="panel" aria-label="Hide panel">
       <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 9l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+  </div>
+
+  <!-- TODAY -->
+  <div class="body" id="p-today" role="tabpanel" aria-labelledby="t-today" hidden>
+    <section>
+      <div class="lbl">Best shoots this week <button class="iconbtn" id="tdRefresh" aria-label="Refresh forecast" style="width:26px;height:26px"><svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true"><path d="M12 7a5 5 0 1 1-1.5-3.6M12 1.5V4H9.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+      <div class="place" id="tdPlace">—</div>
+      <div class="hint" id="tdFor"></div>
+    </section>
+    <div id="tdTop"></div>
+    <section id="tdWeekSec" hidden>
+      <div class="lbl">Next 7 days <span class="muted">tap a score</span></div>
+      <div class="wk" id="tdWeek"></div>
+    </section>
+    <section id="tdListSec" hidden>
+      <div class="lbl">Other good windows</div>
+      <div class="splist" id="tdList"></div>
+    </section>
+    <section id="tdLateSec" hidden>
+      <div class="lbl">Seen near here, last 3 days <button class="chip" id="tdLiveBtn" aria-pressed="false">Show on map</button></div>
+      <div class="splist" id="tdLate"></div>
+    </section>
+    <details>
+      <summary>How the score works</summary>
+      <div class="howto">Each sunrise and sunset window gets 0–100 from four things: how often the animal is seen here in that month (35%), how active it is at that time of day based on when people photograph it (25%), the sky forecast for color and light (25%), and wind (15%, calm is best). It's a guide built from public sightings and weather forecasts, not a guarantee.</div>
+    </details>
   </div>
 
   <!-- WILDLIFE -->
@@ -485,6 +547,20 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
         <div class="card"><div class="light" id="lightTbl"></div></div>
       </section>
 
+      <section id="planSec">
+        <div class="lbl">Plan your setup</div>
+        <div class="hint">Treats the pin as the animal and finds where to stand: sun behind you, wind carrying your scent away, and a clear view over the terrain.</div>
+        <div class="seg" id="plWhen">
+          <button data-v="am" aria-pressed="true">Morning light</button>
+          <button data-v="pm" aria-pressed="false">Evening light</button>
+          <button data-v="slider" aria-pressed="false">Light-tab time</button>
+        </div>
+        <div class="lbl">Distance from the animal <b id="plDv">80 m</b></div>
+        <input type="range" id="plD" min="20" max="400" step="10" value="80" aria-label="Distance from the animal in meters">
+        <div class="row"><button class="btn solid" id="plGo" style="flex:1">Find the best spot to stand</button><button class="btn ghost" id="plClear" hidden>Clear</button></div>
+        <div class="card" id="plOut" hidden></div>
+      </section>
+
       <section>
         <div class="lbl">Sky at sunrise &amp; sunset</div>
         <div class="fc" id="fc"><div class="skel" style="grid-column:1/-1">Loading forecast…</div></div>
@@ -557,14 +633,15 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
 
 <div class="readout glass" id="readout"><span>Lat <b id="rlat">—</b></span><span>Lon <b id="rlon">—</b></span><span>Elev <b id="rel">—</b></span><span>Alt <b id="ralt">—</b></span></div>
 <div class="toast glass" id="toast" role="status" hidden></div>
-<div class="coach glass" id="coach" role="dialog" aria-label="Welcome" hidden>
-  <h2>Wild<span style="color:var(--gold)">light</span></h2>
+<div class="obscard glass" id="obsCard" role="dialog" aria-label="Sighting" hidden></div>
+<div class="coach glass" id="coach" role="dialog" aria-label="What's new" hidden>
+  <h2>Wild<span style="color:var(--gold)">light</span> 2.0</h2>
   <ol>
-    <li><b>Wildlife tab:</b> search any animal and tap it to see where it's seen.</li>
-    <li><b>Tap the globe</b> anywhere for that spot's sunrise, golden hour and sky.</li>
-    <li><b>Light tab:</b> slide through the day to see the sun on the land.</li>
+    <li><b>Today:</b> the best sunrise and sunset shoots near you for the next 7 days, scored by animal activity, sky and wind.</li>
+    <li><b>Live sightings:</b> tap the signal button on the right to see wildlife reported in the last 3 days.</li>
+    <li><b>Plan your setup:</b> drop a pin on the animal and Wildlight shows where to stand for light, wind and a clear view.</li>
   </ol>
-  <div class="hint">Want saved spots, live sun, shade and map layers? Turn on <b style="color:var(--gold)">Advanced</b> next to the tabs.</div>
+  <div class="hint">Search a place at the top, or tap the globe anywhere to start.</div>
   <button class="btn solid" id="coachOk">Start exploring</button>
 </div>
 <div id="err" hidden></div>
@@ -612,13 +689,14 @@ let curTab="wild";
 function tab(name,state){
   curTab=name;
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===name));
-  ["wild","scout","light","spots"].forEach(n=>$("p-"+n).hidden=n!==name);
+  ["today","wild","scout","light","spots"].forEach(n=>$("p-"+n).hidden=n!==name);
+  if(name==="today")renderToday(false);
   if(phone.matches){if(state)setSheet(state);else if(sheet==="peek")setSheet("half");}
   else if(panel.classList.contains("collapsed"))collapse(false,false);
 }
 document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b)tab(b.dataset.tab);});
 document.querySelector(".tabs").addEventListener("keydown",e=>{if(!["ArrowLeft","ArrowRight"].includes(e.key))return;
-  const order=["wild","scout","light","spots"],i=order.indexOf(curTab),n=order[(i+(e.key==="ArrowRight"?1:3))%4];tab(n);$("t-"+n).focus();});
+  const order=["today","wild","scout","light","spots"].filter(n=>!$("t-"+n).hidden&&$("t-"+n).offsetParent),i=order.indexOf(curTab),n=order[(i+(e.key==="ArrowRight"?1:order.length-1))%order.length];tab(n);$("t-"+n).focus();});
 /* drag the sheet on phones */
 (function(){
   let y0=0,h0=0,dragging=false,moved=false;
@@ -1152,15 +1230,13 @@ async function scout(lat,lng,name){
   $("spotName").value=name||"";$("pinElev").textContent="—";$("fRise").textContent=$("fSet").textContent="—";
   $("t-scout").hidden=false;tab("scout",phone.matches&&sheet==="full"?"full":"half");
   $("t-scout").hidden=false;$("placeName").textContent=name||"Dropped pin";if(!name)placeName(lat,lng,my);
+  clearPlan();$("plOut").hidden=true;store.set("wl.home",{lat,lng,label:name||"Your last pin"});
   drawPin();renderLight();refreshLight();
   $("fc").innerHTML='<div class="skel" style="grid-column:1/-1">Loading forecast…</div>';$("fcNote").textContent="";
   loadNearby();
   heightAt(lng,lat,13).then(h=>{if(my===scoutSeq&&h!=null&&Math.abs(lat)<=85){$("pinElev").textContent=Math.round(h*3.28084).toLocaleString()+" ft";$("pinElev").title=Math.round(h).toLocaleString()+" m";}});
   try{
-    const u="https://api.open-meteo.com/v1/forecast?"+new URLSearchParams({latitude:lat.toFixed(4),longitude:lng.toFixed(4),timezone:"auto",forecast_days:7,
-      hourly:"cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation_probability",
-      daily:"sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max",temperature_unit:"fahrenheit"});
-    const r=await fetch(u);if(!r.ok)throw new Error("forecast service returned "+r.status);const j=await r.json();if(my!==scoutSeq)return;
+    const j=await getWx(lat,lng);if(my!==scoutSeq)return;
     S.off=j.utc_offset_seconds;S.offExact=true;fcData=j;if(live)tickLive(true);
     renderLight();drawPin();refreshLight();renderFc();
   }catch(err){if(my!==scoutSeq)return;$("fc").innerHTML=`<div class="hint" style="grid-column:1/-1">Sky forecast unavailable: ${esc(err.message)}.</div>`;}
@@ -1324,6 +1400,7 @@ function pickLL(pos){const ray=viewer.camera.getPickRay(pos);if(!ray)return null
   const g=C.Cartographic.fromCartesian(c);return {lat:C.Math.toDegrees(g.latitude),lng:C.Math.toDegrees(g.longitude)};}
 const hnd=new C.ScreenSpaceEventHandler(scene.canvas);let mt=0,rseq=0;
 hnd.setInputAction(m=>{if(!sdrop.hidden||!$("layersPop").hidden){openDrop(false);closeLayers();return;}if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  const pk=scene.pick(m.position);if(pk&&pk.id&&pk.id.obs){showObs(pk.id.obs);return;}$("obsCard").hidden=true;
   const ll=pickLL(m.position);if(ll)scout(ll.lat,ll.lng);},C.ScreenSpaceEventType.LEFT_CLICK);
 hnd.setInputAction(m=>{clearTimeout(mt);const p=C.Cartesian2.clone(m.endPosition);mt=setTimeout(async()=>{
   const ll=pickLL(p);if(!ll){$("rlat").textContent=$("rlon").textContent=$("rel").textContent="—";return;}
@@ -1339,7 +1416,7 @@ async function placeName(lat,lng,my){
   try{const r=await fetch("https://photon.komoot.io/reverse?"+new URLSearchParams({lat:lat.toFixed(5),lon:lng.toFixed(5),lang:"en"}));if(!r.ok)return;
     const j=await r.json(),p=(j.features&&j.features[0]&&j.features[0].properties)||null;if(!p||my!==scoutSeq)return;
     const near=[p.name&&p.name!==p.city?p.name:"",p.city||p.town||p.village||p.county,p.state||p.country].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).slice(0,2).join(", ");
-    if(near){$("placeName").textContent="Near "+near;if(!$("spotName").value)$("spotName").placeholder="Name this spot (e.g. "+(p.name||p.city||"ridge overlook")+")";}
+    if(near){$("placeName").textContent="Near "+near;const hm=store.get("wl.home",null);if(hm&&Math.abs(hm.lat-lat)<1e-6&&hm.label==="Your last pin")store.set("wl.home",{...hm,label:"Near "+near});if(!$("spotName").value)$("spotName").placeholder="Name this spot (e.g. "+(p.name||p.city||"ridge overlook")+")";}
   }catch(_){}
 }
 function clearPin(){
@@ -1573,12 +1650,279 @@ $("aq").addEventListener("input",e=>{const v=e.target.value.trim();$("idxSec").h
   if(!v){aqSeq++;aqLast=[];$("aqRes").innerHTML="";return;}aqT=setTimeout(()=>animalSearch(v),250);});
 $("aq").addEventListener("keydown",e=>{if(e.key==="Enter"){const f=$("aqRes").querySelector(".cat");if(f)f.click();}if(e.key==="Escape")e.target.blur();});
 
+/* ================= weather (shared, cached) ================= */
+const wxCache=new Map();
+function getWx(lat,lng){
+  const k=lat.toFixed(2)+","+lng.toFixed(2);
+  if(!wxCache.has(k)){
+    const pr=fetch("https://api.open-meteo.com/v1/forecast?"+new URLSearchParams({latitude:lat.toFixed(4),longitude:lng.toFixed(4),timezone:"auto",forecast_days:7,
+      hourly:"cloud_cover_low,cloud_cover_mid,cloud_cover_high,precipitation_probability,wind_speed_10m,wind_direction_10m",
+      daily:"sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max",temperature_unit:"fahrenheit",wind_speed_unit:"mph"}))
+      .then(r=>{if(!r.ok)throw new Error("forecast service returned "+r.status);return r.json();});
+    pr.catch(()=>wxCache.delete(k));wxCache.set(k,pr);
+  }
+  return wxCache.get(k);
+}
+function wxAt(j,dateStr,hour){
+  if(!j||!j.hourly)return null;const H=j.hourly,i=H.time.indexOf(dateStr+"T"+String(hour).padStart(2,"0")+":00");if(i<0)return null;
+  return {lo:H.cloud_cover_low[i],mi:H.cloud_cover_mid[i],hi:H.cloud_cover_high[i],pp:H.precipitation_probability[i]??0,ws:H.wind_speed_10m?H.wind_speed_10m[i]:null,wd:H.wind_direction_10m?H.wind_direction_10m[i]:null};
+}
+const localParts=(d,off)=>{const x=new Date(d.getTime()+off*1000);return {date:x.toISOString().slice(0,10),hour:x.getUTCHours()};};
+const angDiff=(a,b)=>{let d=Math.abs(a-b)%360;return d>180?360-d:d;};
+const fmtDay=(ds)=>{const [y,m,d]=ds.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});};
+function inatFresh(path,params){const u=INAT+path+"?"+new URLSearchParams(Object.entries(params).filter(([,v])=>v!==""&&v!=null)).toString();inatCache.delete(u);return inat(path,params);}
+function agoText(iso){if(!iso)return "";const m=(Date.now()-Date.parse(iso))/60000;if(m<60)return Math.max(1,Math.round(m))+" min ago";const h=m/60;if(h<24)return Math.round(h)+" h ago";return Math.round(h/24)+" d ago";}
+function kmBetween(a,b,c,d){const R=6371,r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+
+/* ================= species signal: season + time of day ================= */
+const sigCache=new Map();
+function speciesSignal(id,lat,lng){
+  const k=id+"@"+lat.toFixed(1)+","+lng.toFixed(1);if(sigCache.has(k))return sigCache.get(k);
+  const pr=(async()=>{
+    const base={taxon_id:id,lat:lat.toFixed(4),lng:lng.toFixed(4),radius:50,verifiable:"true"};
+    const [h,o]=await Promise.all([inat("observations/histogram",{...base,interval:"month_of_year",date_field:"observed"}),
+      inat("observations",{...base,per_page:200,order_by:"observed_on",order:"desc"})]);
+    const mo=h.results?.month_of_year||{},months=MONTHS.map((_,i)=>mo[i+1]||mo[String(i+1)]||0);
+    const hours=new Array(24).fill(0);let nh=0;
+    (o.results||[]).forEach(x=>{const t=x.time_observed_at;if(!t||t.length<13)return;const hr=+t.slice(11,13);if(hr>=0&&hr<24){hours[hr]++;nh++;}});
+    return {months,hours,nh,total:months.reduce((a,b)=>a+b,0)};
+  })();
+  sigCache.set(k,pr);pr.catch(()=>sigCache.delete(k));return pr;
+}
+
+/* ================= best-shoots forecast ================= */
+const SKYQ={"Color potential":1,"Clear":.85,"Mixed":.65,"Overcast":.45,"Rain likely":.15};
+const windQ=ws=>ws==null?.75:ws<6?1:ws<12?.8:ws<20?.55:.3;
+function hoursBetween(a,b,off){const out=[];if(!ok(a)||!ok(b))return out;let t=Math.floor((a.getTime()+off*1000)/3600000);const e=Math.floor((b.getTime()+off*1000)/3600000);for(;t<=e&&out.length<6;t++)out.push(((t%24)+24)%24);return out;}
+const scoreColor=v=>v>=75?"var(--gold)":v>=60?"var(--good)":v>=45?"#c8cf86":"#5d6a64";
+async function buildForecast(loc,targets){
+  const j=await getWx(loc.lat,loc.lng),off=j.utc_offset_seconds;
+  const sigs=await Promise.all(targets.map(t=>speciesSignal(t.id,loc.lat,loc.lng).catch(()=>null)));
+  const wins=[];
+  j.daily.time.forEach((ds,di)=>{
+    const T=SunCalc.getTimes(utcAt(ds,720,off),loc.lat,loc.lng);
+    const defs=[["Sunrise",T.dawn,ok(T.sunrise)?new Date(T.sunrise.getTime()+75*60000):null,T.sunrise],["Sunset",ok(T.sunset)?new Date(T.sunset.getTime()-75*60000):null,T.dusk,T.sunset]];
+    defs.forEach(([kind,a,b,key])=>{
+      if(!ok(key))return;
+      const lp=localParts(key,off),w=wxAt(j,lp.date,lp.hour);
+      const sky=w?skyRating(w.lo,w.mi,w.hi,w.pp)[0]:"Mixed",Lq=SKYQ[sky]??.6,Wq=windQ(w?w.ws:null);
+      const hrs=hoursBetween(ok(a)?a:key,ok(b)?b:key,off),month=+ds.slice(5,7)-1;
+      let best=null;
+      targets.forEach((t,ti)=>{const g=sigs[ti];let Sv=.5,Tv=.5;
+        if(g){if(g.total>=8){const mx=Math.max(...g.months);Sv=mx?g.months[month]/mx:0;}
+          if(g.nh>=15&&hrs.length){const inW=hrs.reduce((s2,h)=>s2+g.hours[h],0)/g.nh,exp=hrs.length/24;Tv=Math.max(0,Math.min(1,inW/exp/2.2));}}
+        const score=Math.round(100*(.35*Sv+.25*Tv+.25*Lq+.15*Wq));
+        if(!best||score>best.score)best={score,t,Sv,Tv,g};});
+      if(!best)return;
+      const why=[];
+      if(best.g&&best.g.total>=8)why.push(best.Sv>=.8?["Peak month"]:best.Sv>=.45?["In season"]:best.Sv>0?["Off season","bad"]:["Not seen here this month","bad"]);
+      else why.push(["Few records here"]);
+      if(best.g&&best.g.nh>=15)why.push(best.Tv>=.7?[kind==="Sunrise"?"Active at dawn":"Active at dusk"]:best.Tv<.3?[kind==="Sunrise"?"Rarely seen at dawn":"Rarely seen at dusk","bad"]:["Some activity then"]);
+      why.push(sky==="Color potential"?["Color in the sky"]:sky==="Clear"?["Clear, clean light"]:sky==="Overcast"?["Soft overcast light"]:sky==="Rain likely"?["Rain likely","bad"]:["Mixed sky"]);
+      if(w&&w.ws!=null)why.push(w.ws<6?["Calm"]:w.ws<12?["Light wind "+Math.round(w.ws)+" mph"]:["Windy "+Math.round(w.ws)+" mph","bad"]);
+      wins.push({ds,di,kind,time:key,off,score:best.score,species:best.t,why,w});
+    });
+  });
+  return {wins,off,days:j.daily.time};
+}
+let tdSeq=0,tdKey="",tdData=null,tdSel=null,tdLoc=null;
+function todayLoc(){
+  if(pin)return {lat:pin.lat,lng:pin.lng,label:$("placeName").textContent};
+  const h=store.get("wl.home",null);if(h&&isFinite(h.lat))return h;
+  const c=viewCenter();if(c&&viewer.camera.positionCartographic.height<2500000){const g=C.Cartographic.fromCartesian(c);return {lat:C.Math.toDegrees(g.latitude),lng:C.Math.toDegrees(g.longitude),label:"Middle of the map"};}
+  return null;
+}
+async function renderToday(force){
+  const loc=todayLoc();
+  if(!loc){$("tdPlace").textContent="Pick a place to start";$("tdFor").textContent="Tap the globe, search a place at the top, or use My location. Wildlight then ranks the best sunrise and sunset shoots there for the next 7 days.";
+    $("tdTop").innerHTML="";["tdWeekSec","tdListSec","tdLateSec"].forEach(id=>$(id).hidden=true);return;}
+  const key=loc.lat.toFixed(3)+","+loc.lng.toFixed(3)+"|"+active.map(a=>a.id).join(",")+"|"+F.rg;
+  if(!force&&key===tdKey&&tdData)return;
+  tdKey=key;tdLoc=loc;const my=++tdSeq;tdSel=null;
+  $("tdPlace").textContent=loc.label||"Your spot";$("tdFor").textContent="Working out the best windows…";
+  $("tdTop").innerHTML='<div class="card"><span class="skel">Reading sightings, sky and wind…</span></div>';
+  ["tdWeekSec","tdListSec"].forEach(id=>$(id).hidden=true);
+  loadLately(loc,my);
+  try{
+    let targets=active.slice(0,4).map(a=>({id:a.id,name:a.name,color:a.color})),auto=false;
+    if(!targets.length){
+      auto=true;const p0={lat:loc.lat.toFixed(4),lng:loc.lng.toFixed(4),radius:25,taxon_id:1,month:now.getMonth()+1,per_page:3,locale:"en"};
+      if(F.rg)p0.quality_grade="research";else p0.verifiable="true";
+      const r=await inat("observations/species_counts",p0);if(my!==tdSeq)return;
+      targets=(r.results||[]).filter(x=>x.taxon).slice(0,3).map(x=>({id:x.taxon.id,name:titleCase(x.taxon.preferred_common_name||x.taxon.name)}));
+    }
+    if(!targets.length){$("tdFor").textContent="";$("tdTop").innerHTML='<div class="empty"><b>No wildlife recorded here this month</b><span class="hint">Try a spot nearer water, woods or a park, or pick "Any time of year" in the Animals tab.</span></div>';return;}
+    $("tdFor").textContent=auto?`Scored for what's seen most here now: ${targets.map(t=>t.name).join(", ")}. Add animals in the Animals tab to score your own.`:`Scored for ${targets.map(t=>t.name).join(", ")}.`;
+    const f=await buildForecast(loc,targets);if(my!==tdSeq)return;
+    tdData=f;drawToday();
+  }catch(err){if(my!==tdSeq)return;$("tdFor").textContent="";$("tdTop").innerHTML=`<div class="empty"><b>Couldn't build the forecast</b><span class="hint">${esc(err.message)}. Check your connection and tap refresh.</span></div>`;}
+}
+function winLabel(w){return `${fmtDay(w.ds).split(",")[0]} · ${w.kind} ${fmtT(w.time,w.off)}`;}
+function drawToday(){
+  const f=tdData;if(!f)return;const ranked=[...f.wins].sort((a,b)=>b.score-a.score);
+  if(!ranked.length){$("tdTop").innerHTML='<div class="empty"><b>No sunrise or sunset here this week</b><span class="hint">Polar day or night. Try a spot farther from the pole.</span></div>';return;}
+  const sel=tdSel||ranked[0],isTop=sel===ranked[0];
+  const sp=sel.species,dot=sp.color?`<span class="sw" style="background:${sp.color};border-color:${sp.color}"></span>`:"";
+  $("tdTop").innerHTML=`<div class="card hero">
+      <div class="ring" style="--v:${sel.score};--c:${scoreColor(sel.score)}">${sel.score}</div>
+      <div style="min-width:0"><div class="hint">${isTop?"Best shot this week":"Selected window"}</div><div class="when">${esc(winLabel(sel))}</div><div class="who">${dot}<b>${esc(sp.name)}</b></div></div>
+      <div class="why">${sel.why.map(([t,c])=>`<span class="${c||""}">${esc(t)}</span>`).join("")}</div>
+      <div class="row" style="grid-column:1/-1"><button class="btn solid" id="tdPlan" style="flex:1">Plan my setup</button><button class="btn ghost" id="tdSee">See the light</button></div>
+    </div>`;
+  $("tdPlan").addEventListener("click",()=>planFromWindow(sel));
+  $("tdSee").addEventListener("click",()=>{setLive(false);setDate(sel.ds);S.off=sel.off;S.min=minOf(sel.time,sel.off);$("time").value=S.min;if(!globe.enableLighting)setDaylight(true);refreshLight();tab("light");});
+  // week grid
+  let g='<span></span>'+f.days.map(ds=>`<span class="h">${esc(fmtDay(ds).split(",")[0])}</span>`).join("");
+  ["Sunrise","Sunset"].forEach(kind=>{g+=`<span class="rl">${kind==="Sunrise"?"Rise":"Set"}</span>`;
+    f.days.forEach((ds,di)=>{const w=f.wins.find(x=>x.di===di&&x.kind===kind);
+      g+=w?`<button data-k="${di}|${kind}" aria-pressed="${w===sel}" style="background:${scoreColor(w.score)}" aria-label="${esc(winLabel(w))}: ${w.score}">${w.score}</button>`:'<span class="na">—</span>';});});
+  $("tdWeek").innerHTML=g;$("tdWeekSec").hidden=false;
+  $("tdWeek").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{const [di,kind]=b.dataset.k.split("|");tdSel=f.wins.find(x=>x.di===+di&&x.kind===kind);drawToday();}));
+  // other good windows
+  const others=ranked.filter(w=>w!==sel).slice(0,4);
+  $("tdList").innerHTML="";others.forEach(w=>{const b=document.createElement("button");b.className="wrow";
+    b.innerHTML=`<span class="sc" style="background:${scoreColor(w.score)}">${w.score}</span><span class="nm"><b>${esc(winLabel(w))}</b><i>${esc(w.species.name)} · ${esc(w.why.map(x=>x[0]).slice(0,2).join(", "))}</i></span>`;
+    b.addEventListener("click",()=>{tdSel=w;drawToday();$("p-today").scrollTop=0;});$("tdList").appendChild(b);});
+  $("tdListSec").hidden=!others.length;
+}
+async function planFromWindow(w){
+  const loc=tdLoc||todayLoc();if(!loc)return;
+  if(!pin||Math.abs(pin.lat-loc.lat)>1e-5||Math.abs(pin.lng-loc.lng)>1e-5){await scout(loc.lat,loc.lng,loc.label&&loc.label!=="Middle of the map"?loc.label:"");}
+  else tab("scout");
+  setDate(w.ds);
+  const t=SunCalc.getTimes(utcAt(w.ds,720,w.off),loc.lat,loc.lng);
+  const when=w.kind==="Sunrise"?new Date(t.sunrise.getTime()+30*60000):new Date(t.sunset.getTime()-45*60000);
+  $("plWhen").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.v===(w.kind==="Sunrise"?"am":"pm")));
+  planSetup(when);$("planSec").scrollIntoView({block:"start",behavior:reduce?"auto":"smooth"});
+}
+$("tdRefresh").addEventListener("click",()=>{wxCache.clear();renderToday(true);});
+
+/* seen near here, last 3 days */
+let lateSeq=0;
+async function loadLately(loc,my){
+  const sec=$("tdLateSec"),box=$("tdLate"),ls=++lateSeq;sec.hidden=false;box.innerHTML='<span class="skel hint">Checking recent sightings…</span>';
+  try{
+    const d1=new Date(Date.now()-3*864e5).toISOString().slice(0,10);
+    const r=await inatFresh("observations",{lat:loc.lat.toFixed(4),lng:loc.lng.toFixed(4),radius:25,d1,order_by:"observed_on",order:"desc",per_page:8,photos:"true",verifiable:"true",locale:"en",taxon_id:active.length?active.map(a=>a.id).join(","):1});
+    if(ls!==lateSeq)return;
+    const res=(r.results||[]).filter(o=>o.taxon);
+    if(!res.length){box.innerHTML='<span class="hint">Nothing reported within 25 km in the last 3 days.</span>';return;}
+    box.innerHTML="";res.forEach(o=>{const b=document.createElement("button");b.className="sp";
+      const [la,lo]=(o.location||"0,0").split(",").map(Number),km=kmBetween(loc.lat,loc.lng,la,lo);
+      b.innerHTML=`<img alt="" loading="lazy" src="${esc(o.photos?.[0]?.url||"")}"><span class="nm"><b>${esc(titleCase(o.taxon.preferred_common_name||o.taxon.name))}</b><i>${esc(agoText(o.time_observed_at||o.created_at))} · ${km<1?"under 1":Math.round(km)} km away${o.obscured?" · location blurred":""}</i></span>`;
+      b.addEventListener("click",()=>{flyTo(lo,la,4000,-45,0);showObs(o);});box.appendChild(b);});
+  }catch(err){if(ls===lateSeq)box.innerHTML=`<span class="hint">Couldn't load recent sightings: ${esc(err.message)}.</span>`;}
+}
+$("tdLiveBtn").addEventListener("click",()=>setLiveLayer(!liveOn));
+
+/* ================= live sightings layer ================= */
+let liveOn=false,liveSeq=0,sightTimer=0,liveMoveT=0;const liveDS=new C.CustomDataSource("live");viewer.dataSources.add(liveDS);
+const ICOL={Aves:"#5aa9ff",Mammalia:"#ff8c42",Reptilia:"#9be15d",Amphibia:"#3ee0d0",Actinopterygii:"#4fc3f7",Insecta:"#ff5fa2",Arachnida:"#b48cff",Mollusca:"#e8d15a"};
+const dotCache={};
+function dotImg(col,fresh){const k=col+fresh;if(dotCache[k])return dotCache[k];const c=document.createElement("canvas");c.width=c.height=40;const g=c.getContext("2d");
+  if(fresh){g.strokeStyle=col;g.globalAlpha=.55;g.lineWidth=3;g.beginPath();g.arc(20,20,17,0,7);g.stroke();g.globalAlpha=1;}
+  g.fillStyle="#0b100e";g.beginPath();g.arc(20,20,11,0,7);g.fill();g.fillStyle=col;g.beginPath();g.arc(20,20,8,0,7);g.fill();return dotCache[k]=c.toDataURL();}
+function setLiveLayer(on){
+  liveOn=on;$("cLive").setAttribute("aria-pressed",on);$("tdLiveBtn").setAttribute("aria-pressed",on);$("tdLiveBtn").textContent=on?"On the map":"Show on map";
+  clearInterval(sightTimer);
+  if(on){loadLive(true);sightTimer=setInterval(()=>loadLive(false),5*60000);}
+  else{liveDS.entities.removeAll();$("obsCard").hidden=true;scene.requestRender();}
+}
+async function loadLive(announce){
+  if(!liveOn)return;const box=viewBox();
+  if(!box){liveDS.entities.removeAll();scene.requestRender();if(announce)toast("Live sightings are on. Zoom in on an area to see what's been reported there in the last 3 days.",5000);return;}
+  const my=++liveSeq,d1=new Date(Date.now()-3*864e5).toISOString().slice(0,10);
+  try{
+    const r=await inatFresh("observations",{...box,d1,order_by:"observed_on",order:"desc",per_page:150,photos:"true",verifiable:"true",locale:"en",taxon_id:active.length?active.map(a=>a.id).join(","):1});
+    if(my!==liveSeq||!liveOn)return;
+    liveDS.entities.removeAll();let n=0;
+    (r.results||[]).forEach(o=>{if(!o.location||!o.taxon)return;const [la,lo]=o.location.split(",").map(Number);
+      const fresh=Date.now()-Date.parse(o.time_observed_at||o.created_at)<864e5,col=ICOL[o.taxon.iconic_taxon_name]||"#e8eee9";
+      const e=liveDS.entities.add({position:C.Cartesian3.fromDegrees(lo,la),billboard:{image:dotImg(col,fresh),width:fresh?26:20,height:fresh?26:20,
+        heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}});e.obs=o;n++;});
+    scene.requestRender();
+    if(announce)toast(n?`${n} sightings reported here in the last 3 days. Ringed dots are from the last 24 hours. Tap one for details.`:"No sightings reported in this area in the last 3 days.",5000);
+  }catch(err){if(announce)toast("Couldn't load live sightings: "+err.message);}
+}
+$("cLive").addEventListener("click",()=>setLiveLayer(!liveOn));
+viewer.camera.moveEnd.addEventListener(()=>{if(!liveOn)return;clearTimeout(liveMoveT);liveMoveT=setTimeout(()=>loadLive(false),800);});
+function showObs(o){
+  const card=$("obsCard"),name=titleCase(o.taxon.preferred_common_name||o.taxon.name),ph=(o.photos?.[0]?.url||"").replace("square","medium");
+  const [la,lo]=(o.location||"0,0").split(",").map(Number);
+  card.innerHTML=`${ph?`<img alt="${esc(name)}" src="${esc(ph)}">`:'<span class="ph"></span>'}
+    <div class="tx"><b>${esc(name)}</b><span class="hint">${esc(o.taxon.name)}</span>
+      <span class="hint">${esc(agoText(o.time_observed_at||o.created_at))}${o.user?.login?" · by "+esc(o.user.login):""}</span>
+      <span class="hint">${esc(o.place_guess||"")}${o.obscured?" · exact location blurred to protect the animal":""}</span></div>
+    <div class="row"><button class="btn solid" id="obsScout" style="flex:1">Scout here</button><a class="btn ghost" href="https://www.inaturalist.org/observations/${o.id}" target="_blank" rel="noopener">iNaturalist</a><button class="iconbtn" id="obsClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>`;
+  card.hidden=false;toastEl.hidden=true;clearTimeout(toastT);
+  $("obsClose").addEventListener("click",()=>card.hidden=true);
+  $("obsScout").addEventListener("click",()=>{card.hidden=true;scout(la,lo,name+" sighting");});
+}
+
+/* ================= setup planner ================= */
+let planEnts=[];
+function clearPlan(){planEnts.forEach(e=>viewer.entities.remove(e));planEnts=[];$("plClear").hidden=true;scene.requestRender();}
+const camCanvas=(col,size)=>{const c=document.createElement("canvas");c.width=c.height=size;const g=c.getContext("2d"),s2=size/2;
+  g.fillStyle="#0b100e";g.beginPath();g.arc(s2,s2,s2-1,0,7);g.fill();g.strokeStyle=col;g.lineWidth=size/14;g.beginPath();g.arc(s2,s2,s2-size/12,0,7);g.stroke();
+  g.fillStyle=col;const w=size*.46,h=size*.3;g.fillRect(s2-w/2,s2-h/2+size*.04,w,h);g.fillRect(s2-w*.18,s2-h/2-size*.04,w*.36,size*.09);
+  g.fillStyle="#0b100e";g.beginPath();g.arc(s2,s2+size*.04,size*.09,0,7);g.fill();return c;};
+$("plD").addEventListener("input",e=>$("plDv").textContent=e.target.value+" m");
+$("plWhen").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;$("plWhen").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));});
+$("plGo").addEventListener("click",()=>planSetup(null));
+$("plClear").addEventListener("click",()=>{clearPlan();$("plOut").hidden=true;});
+async function planSetup(when){
+  if(!pin)return;const out=$("plOut");out.hidden=false;out.innerHTML='<span class="skel">Checking sun, wind and terrain…</span>';
+  const d=+$("plD").value,mode=$("plWhen").querySelector('[aria-pressed="true"]').dataset.v;
+  if(!when){const t=lightFor(pin.lat,pin.lng);
+    if(mode==="am")when=ok(t.sunrise)?new Date(t.sunrise.getTime()+30*60000):null;
+    else if(mode==="pm")when=ok(t.sunset)?new Date(t.sunset.getTime()-45*60000):null;
+    else when=utcAt(S.date,S.min,S.off);
+    if(!when){out.innerHTML='<span class="hint">The sun doesn\'t rise or set here on this date. Pick "Light-tab time" and set a time in the Light tab.</span>';return;}}
+  const pos=SunCalc.getPosition(when,pin.lat,pin.lng),sunAlt=pos.altitude*180/Math.PI,sunAz=bearingOf(when,pin.lat,pin.lng);
+  let wind=null;try{const j=await getWx(pin.lat,pin.lng),lp=localParts(when,j.utc_offset_seconds),w=wxAt(j,lp.date,lp.hour);if(w&&w.ws!=null)wind=w;}catch(_){}
+  const h0r=Math.abs(pin.lat)>85?null:await heightAt(pin.lng,pin.lat,13),noTerrain=h0r==null,h0=h0r??0;
+  const cands=[];
+  for(let b=0;b<360;b+=10){
+    const [clng,clat]=destPt(pin.lat,pin.lng,b,d),hc=noTerrain?h0:((await heightAt(clng,clat,13))??h0);
+    const eye=hc+1.6,tgt=h0+0.6;let blocked=false;
+    for(let k=1;k<12&&!blocked&&!noTerrain;k++){const f=k/12,la=clat+(pin.lat-clat)*f,lo=clng+(pin.lng-clng)*f,hk=(await heightAt(lo,la,13))??0;if(hk>eye+(tgt-eye)*f+1.5)blocked=true;}
+    const light=sunAlt>-2?Math.cos(angDiff(b,sunAz)*Math.PI/180):0;
+    const windTo=wind?(wind.wd+180)%360:null,wq=wind?Math.min(1,.25+wind.ws/8):0;
+    const wscore=wind?Math.cos(angDiff(b,windTo)*Math.PI/180)*wq:0;
+    const score=.6*light+.4*wscore-(blocked?2:0)+Math.max(0,Math.min(.1,(hc-h0)/60));
+    cands.push({b,clat,clng,hc,blocked,score});
+  }
+  cands.sort((x,y)=>y.score-x.score);
+  const picks=[];for(const c of cands){if(picks.every(p2=>angDiff(p2.b,c.b)>=40))picks.push(c);if(picks.length===3)break;}
+  const best=picks[0];clearPlan();
+  planEnts.push(viewer.entities.add({polyline:{positions:C.Cartesian3.fromDegreesArray([best.clng,best.clat,pin.lng,pin.lat]),width:3,clampToGround:true,
+    material:new C.PolylineDashMaterialProperty({color:C.Color.fromCssColorString("#94d17e"),dashLength:10})}}));
+  picks.forEach((c,i)=>planEnts.push(viewer.entities.add({position:C.Cartesian3.fromDegrees(c.clng,c.clat),
+    billboard:{image:camCanvas(i?"#e8eee9":"#94d17e",i?40:56),width:i?24:34,height:i?24:34,heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY},
+    label:i?undefined:{text:"Stand here",font:"600 12px JetBrains Mono, monospace",fillColor:C.Color.fromCssColorString("#94d17e"),outlineColor:C.Color.BLACK,outlineWidth:3,style:C.LabelStyle.FILL_AND_OUTLINE,
+      pixelOffset:new C.Cartesian2(0,-26),heightReference:C.HeightReference.CLAMP_TO_GROUND,disableDepthTestDistance:Number.POSITIVE_INFINITY}})));
+  $("plClear").hidden=false;scene.requestRender();
+  const off=S.off,face=compass((best.b+180)%360),lines=[];
+  lines.push(`<b>Stand about ${d} m ${compass(best.b)} of the animal, facing ${face}.</b>`);
+  lines.push(`For ${esc(fmtDay(localParts(when,off).date))} at ${esc(fmtT(when,off))}.`);
+  if(sunAlt>1){const df=angDiff(best.b,sunAz);lines.push(`The sun will be ${Math.round(sunAlt)}° up in the ${compass(sunAz)}, ${df<30?"right behind you, so the animal is fully front-lit":df<70?"over your shoulder, giving side-front light":"off to the side; this spot was chosen for wind or view instead"}.`);}
+  else if(sunAlt>-6)lines.push(`The sun is at or just below the horizon in the ${compass(sunAz)}, so expect soft twilight glow from that side.`);
+  else lines.push("It's dark at that time, so light direction doesn't apply.");
+  if(wind){const wa=angDiff(best.b,(wind.wd+180)%360);lines.push(`Forecast wind ${Math.round(wind.ws)} mph from the ${compass(wind.wd)}: ${wind.ws<3?"almost calm, so scent drifts little":wa<45?"it carries your scent away from the animal":wa<100?"a crosswind, so your scent mostly drifts past the animal":"it may carry your scent toward the animal, so keep low and approach slowly"}.`);}
+  else lines.push("No wind forecast for that time (it's more than 7 days out), so only light and terrain were used.");
+  if(noTerrain)lines.push('<span class="muted">Terrain data didn\'t load, so sight lines weren\'t checked. Light and wind advice still applies.</span>');
+  else lines.push(best.blocked?"<span style=\"color:var(--bad)\">Terrain may block the view from every direction at this distance. Try moving closer.</span>":`Clear line of sight${best.hc-h0>3?`, about ${Math.round((best.hc-h0)*3.28084)} ft above the animal`:best.hc-h0<-3?`, about ${Math.round((h0-best.hc)*3.28084)} ft below the animal`:""}.`);
+  if(picks.length>1)lines.push(`<span class="muted">Backup spots (white cameras): ${picks.slice(1).map(c=>compass(c.b)).join(" and ")}.</span>`);
+  out.innerHTML=lines.map(l=>`<div style="line-height:1.55">${l}</div>`).join("");
+}
+
 /* ================= coach ================= */
-if(!store.get("wl.coach3",false)){$("coach").hidden=false;$("coachOk").focus();}
-$("coachOk").addEventListener("click",()=>{$("coach").hidden=true;store.set("wl.coach3",true);});
+if(!store.get("wl.coach20",false)){$("coach").hidden=false;$("coachOk").focus();}
+$("coachOk").addEventListener("click",()=>{$("coach").hidden=true;store.set("wl.coach20",true);});
 
 setAdv(adv,false);layoutMode();
 if(phone.matches)setSheet("peek",false);
+tab(store.get("wl.home",null)?"today":"wild",phone.matches?"peek":undefined);
 rebuildActive();buildSightings();renderLegend();renderCatalog();
 viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-50,25,22000000)});altText();updateCompass();refreshLight();
 viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-72.7,40,phone.matches?16000000:12500000),duration:reduce?0:2.5,complete:()=>{refreshLight();IDX.lastBox=JSON.stringify(viewBox());loadIndex(true);}});
