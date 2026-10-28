@@ -1469,6 +1469,32 @@ function clearPin(){
 $("clearPin").addEventListener("click",clearPin);
 
 
+/* ================= starfield ================= */
+/* Sharp point stars instead of the engine's soft sky image. They sit far out in the Earth's own frame,
+   so they turn with the globe when you spin it, and the globe hides the ones behind it. */
+(function(){
+  if(scene.skyBox)scene.skyBox.show=false;
+  let seed=20261027;const rnd=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+  const gauss=()=>{let u=0,v=0;while(!u)u=rnd();while(!v)v=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);};
+  const R=3.0e8,stars=new C.PointPrimitiveCollection();
+  const n=new C.Cartesian3(0.46,-0.52,0.72);C.Cartesian3.normalize(n,n);            // tilt of the Milky Way band
+  const u=C.Cartesian3.normalize(C.Cartesian3.cross(n,C.Cartesian3.UNIT_Z,new C.Cartesian3()),new C.Cartesian3());
+  const v=C.Cartesian3.cross(n,u,new C.Cartesian3());
+  const tints=[[1,1,1],[1,1,1],[1,1,1],[.82,.88,1],[.75,.84,1],[1,.95,.82],[1,.86,.7]];
+  const d=new C.Cartesian3();
+  for(let i=0;i<7000;i++){
+    if(i<2600){ // band stars
+      const a=rnd()*Math.PI*2,off=gauss()*0.09;
+      d.x=u.x*Math.cos(a)+v.x*Math.sin(a)+n.x*off;d.y=u.y*Math.cos(a)+v.y*Math.sin(a)+n.y*off;d.z=u.z*Math.cos(a)+v.z*Math.sin(a)+n.z*off;
+    }else{const z=2*rnd()-1,t=2*Math.PI*rnd(),r=Math.sqrt(1-z*z);d.x=r*Math.cos(t);d.y=r*Math.sin(t);d.z=z;}
+    C.Cartesian3.normalize(d,d);
+    const m=Math.pow(rnd(),i<2600?4.5:3.2),tint=tints[Math.floor(rnd()*tints.length)];
+    stars.add({position:C.Cartesian3.multiplyByScalar(d,R,new C.Cartesian3()),pixelSize:1+m*2.4,
+      color:new C.Color(tint[0],tint[1],tint[2],0.28+0.72*Math.min(1,m*1.6))});
+  }
+  scene.primitives.add(stars);scene.requestRender();
+})();
+
 /* ================= relief tiles as shadow + highlight ================= */
 /* A hillshade tile is mostly flat gray, which washes out the satellite image. Each relief layer learns
    its "flat" gray (the most common value across its tiles) and redraws darker pixels as transparent
