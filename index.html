@@ -108,6 +108,16 @@ button{font:inherit;color:inherit}
 .res{display:flex;flex-direction:column;gap:1px}
 .res .cat img,.res .ph{width:38px;height:38px;border-radius:7px;object-fit:cover;flex:none;background:var(--raise)}
 .picks{display:flex;flex-wrap:wrap;gap:6px}
+.groupscroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px}
+.groupscroll::-webkit-scrollbar{display:none}
+.groupscroll .chip{flex:none}
+.idxhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:2px 2px 0}
+.idxhead b{font-family:var(--display);font-size:15px;letter-spacing:.02em}
+.idxhead span{color:var(--muted);font-size:10.5px}
+.idx{display:flex;flex-direction:column;gap:1px}
+.idx .cat .cnt{flex:none;color:var(--muted);font-size:10px;text-align:right;font-variant-numeric:tabular-nums;min-width:52px}
+.more{display:flex;justify-content:center;padding:10px}
+.tchip[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:#1a0806}
 .panel.collapsed #hide svg{transform:rotate(180deg)}
 .body{overflow:auto;padding:14px;display:flex;flex-direction:column;gap:18px;min-height:0;flex:1;overscroll-behavior:contain;scrollbar-width:thin}
 section{display:flex;flex-direction:column;gap:9px}
@@ -350,37 +360,55 @@ details>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:9px}
 
   <!-- WILDLIFE -->
   <div class="body" id="p-wild" role="tabpanel" aria-labelledby="t-wild">
-    <section>
-      <div class="lbl">Find any animal</div>
-      <div class="bigsearch">
-        <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-        <input type="text" id="aq" placeholder="Moose, snowy owl, red fox…" autocomplete="off" spellcheck="false" aria-label="Search any animal">
-      </div>
-      <div class="res" id="aqRes"></div>
-      <div id="picksBox">
-        <div class="hint" style="margin-bottom:8px">Or start with one of these:</div>
-        <div class="picks" id="picks"></div>
-      </div>
-    </section>
-
-    <section>
+    <section id="onmapSec" hidden>
       <div class="lbl">On the map <b id="actN"></b></div>
       <div class="onmap" id="onmap"></div>
     </section>
 
     <section>
-      <div class="lbl">Sightings from</div>
-      <div class="row" style="flex-wrap:nowrap">
-        <select id="month" aria-label="Sightings from which month" style="flex:1"></select>
-        <div class="seg adv" id="rgSeg" style="flex:1.3">
-          <button data-v="1" aria-pressed="true">Verified</button>
-          <button data-v="0" aria-pressed="false">All</button>
-        </div>
+      <div class="bigsearch">
+        <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input type="text" id="aq" placeholder="Search any animal: moose, snowy owl…" autocomplete="off" spellcheck="false" aria-label="Search any animal">
       </div>
+      <div class="res" id="aqRes"></div>
     </section>
 
-    <section class="adv">
-      <div class="lbl">Browse popular &amp; rare</div>
+    <section id="idxSec">
+      <div class="groupscroll" id="idxGroups" role="toolbar" aria-label="Animal groups">
+        <button class="chip" data-t="1" aria-pressed="true">All animals</button>
+        <button class="chip" data-t="3" aria-pressed="false">Birds</button>
+        <button class="chip" data-t="40151" aria-pressed="false">Mammals</button>
+        <button class="chip" data-t="26036" aria-pressed="false">Reptiles</button>
+        <button class="chip" data-t="20978" aria-pressed="false">Amphibians</button>
+        <button class="chip" data-t="47178" aria-pressed="false">Fish</button>
+        <button class="chip" data-t="47273" aria-pressed="false">Sharks &amp; rays</button>
+        <button class="chip" data-t="47157" aria-pressed="false">Butterflies &amp; moths</button>
+        <button class="chip" data-t="47792" aria-pressed="false">Dragonflies</button>
+        <button class="chip" data-t="47158" aria-pressed="false">All insects</button>
+        <button class="chip" data-t="47119" aria-pressed="false">Spiders &amp; kin</button>
+        <button class="chip" data-t="47115" aria-pressed="false">Mollusks</button>
+      </div>
+      <div class="row" style="flex-wrap:nowrap">
+        <div class="seg" id="idxScope" style="flex:1">
+          <button data-v="view" aria-pressed="true">Where I'm looking</button>
+          <button data-v="world" aria-pressed="false">Worldwide</button>
+        </div>
+      </div>
+      <div class="row" style="flex-wrap:nowrap">
+        <select id="month" aria-label="Sightings from which month" style="flex:1"></select>
+        <button class="chip tchip" id="idxThreat" aria-pressed="false" style="flex:none;padding:8px 11px">Threatened only</button>
+      </div>
+      <div class="seg adv" id="rgSeg">
+        <button data-v="1" aria-pressed="true">Verified sightings</button>
+        <button data-v="0" aria-pressed="false">All sightings</button>
+      </div>
+      <div class="idxhead"><b id="idxTitle">Wildlife index</b><span id="idxSub"></span></div>
+      <div class="idx" id="idx" role="list"></div>
+      <div class="more" id="idxMore"></div>
+    </section>
+
+    <section hidden>
+      <div class="lbl">Browse</div>
       <div class="seg" id="tier">
         <button data-v="all" aria-pressed="true">All</button>
         <button data-v="popular" aria-pressed="false">Popular</button>
@@ -734,7 +762,7 @@ $("rgSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b
 $("sightOn").addEventListener("change",e=>{F.show=e.target.checked;buildSightings();});
 $("sop").addEventListener("input",e=>{F.opacity=e.target.value/100;$("sopv").textContent=e.target.value+"%";if(sightLayer)sightLayer.alpha=F.opacity;
   active.forEach(a=>a.layers.forEach(l=>l.alpha=Math.min(1,F.opacity+.1)));scene.requestRender();});
-function filtersChanged(){buildSightings();rebuildActive();if(pin)loadNearby();}
+function filtersChanged(){buildSightings();rebuildActive();if(pin)loadNearby();IDX.offline=false;loadIndex(true);}
 
 /* ================= species finder ================= */
 // [tier, kind, common name, scientific name, where, IUCN status, found in Connecticut]
@@ -1448,13 +1476,15 @@ $("advBtn").addEventListener("click",()=>setAdv(!adv,true));
 $("sightOn").addEventListener("change",e=>{F.show=adv&&e.target.checked;buildSightings();});
 
 /* ================= animal search (Wildlife tab) ================= */
-const PICKS=["Bald Eagle","Snowy Owl","Moose","American Black Bear","Red Fox","Great Blue Heron","Bobcat","Humpback Whale","Atlantic Puffin","Gray Wolf"];
 let aqSeq=0,aqT=0,aqLast=[];
+function statusBadge(t){const c=(t.conservation_status?.status||"").toString().toUpperCase();
+  const m={CR:"CR",EN:"EN",VU:"VU",NT:"NT","CRITICALLY ENDANGERED":"CR",ENDANGERED:"EN",VULNERABLE:"VU","NEAR THREATENED":"NT"}[c];
+  return m?` <span class="iucn ${m}" title="${IUCN[m]}">${m}</span>`:"";}
 function aqRow(it){
   const a=it.id?active.find(x=>x.id===it.id):active.find(x=>x.sci===it.sci);
-  const b=document.createElement("button");b.className="cat";b.setAttribute("aria-pressed",!!a);
+  const b=document.createElement("button");b.className="cat";b.setAttribute("aria-pressed",!!a);b.setAttribute("role","listitem");
   const img=it.photo?`<img alt="" loading="lazy" src="${esc(it.photo)}">`:`<span class="ph"></span>`;
-  b.innerHTML=`${img}<span class="nm"><b>${esc(it.name)}</b><i>${esc(it.sub)}</i></span>${a?`<span class="sw" style="background:${a.color};border-color:${a.color}"></span>`:""}<span class="add">${a?"On map":"Show"}</span>`;
+  b.innerHTML=`${img}<span class="nm"><b>${esc(it.name)}${it.badge||""}</b><i>${esc(it.sub)}</i></span>${it.count!=null?`<span class="cnt">${it.count.toLocaleString()}<br>sightings</span>`:""}${a?`<span class="sw" style="background:${a.color};border-color:${a.color}"></span>`:""}<span class="add">${a?"On map":"Show"}</span>`;
   b.addEventListener("click",()=>{
     if(a){removeSpecies(a.id);return;}
     if(it.cat)toggleCatalog(it.cat,null);else addSpecies({id:it.id,name:it.name,sci:it.sci,photo:it.photo||""});
@@ -1462,12 +1492,68 @@ function aqRow(it){
   return b;
 }
 function drawAq(){const box=$("aqRes");box.innerHTML="";aqLast.forEach(it=>box.appendChild(aqRow(it)));}
-function refreshAq(){if(aqLast.length)drawAq();renderPicks();}
-function renderPicks(){
-  const box=$("picks");box.innerHTML="";
-  PICKS.map(n=>CATALOG.find(e=>e.name===n)).filter(Boolean).forEach(e=>{const a=active.find(x=>x.sci===e.sci),c=document.createElement("button");
-    c.className="chip";c.setAttribute("aria-pressed",!!a);c.textContent=e.name;c.addEventListener("click",()=>toggleCatalog(e,null));box.appendChild(c);});
+function refreshAq(){if(aqLast.length)drawAq();drawIndex();$("onmapSec").hidden=!active.length;}
+function renderPicks(){}
+
+/* ---------- wildlife index: every species iNaturalist has, most-seen first ---------- */
+const IDX={taxon:1,scope:"view",threat:false,page:0,total:0,items:[],loading:false,done:false,seq:0,err:""};
+const titleCase=s=>s.replace(/\b\w/g,c=>c.toUpperCase());
+function viewBox(){
+  const r=viewer.camera.computeViewRectangle(globe.ellipsoid);if(!r)return null;
+  const w=C.Math.toDegrees(r.west),e=C.Math.toDegrees(r.east),s=C.Math.toDegrees(r.south),n=C.Math.toDegrees(r.north);
+  if(e-w>300||n-s>150||w>e)return null;return {swlat:s.toFixed(3),swlng:w.toFixed(3),nelat:n.toFixed(3),nelng:e.toFixed(3)};
 }
+async function loadIndex(reset){
+  if(reset){IDX.page=0;IDX.items=[];IDX.done=false;IDX.total=0;IDX.err="";IDX.seq++;IDX.loading=false;}
+  if(IDX.loading||IDX.done)return;
+  const my=IDX.seq;IDX.loading=true;drawIndexFooter();if(reset)drawIndex();
+  const p={taxon_id:IDX.taxon,per_page:50,page:IDX.page+1,locale:"en",month:F.month||""};
+  if(F.rg)p.quality_grade="research";else p.verifiable="true";
+  if(IDX.threat)p.threatened="true";
+  let box=null;if(IDX.scope==="view"){box=viewBox();if(box)Object.assign(p,box);}
+  IDX.boxed=!!box;
+  try{
+    const r=await inat("observations/species_counts",p);if(my!==IDX.seq)return;
+    const res=(r.results||[]).filter(x=>x.taxon);
+    IDX.total=r.total_results||0;IDX.page++;
+    IDX.items.push(...res.map(x=>{const t=x.taxon;return {id:t.id,name:t.preferred_common_name?titleCase(t.preferred_common_name):t.name,sci:t.name,photo:t.default_photo?.square_url||"",sub:t.name,count:x.count,badge:statusBadge(t)};}));
+    if(!res.length||IDX.items.length>=IDX.total)IDX.done=true;
+  }catch(err){if(my!==IDX.seq)return;IDX.err=err.message;IDX.done=true;
+    if(!IDX.items.length){ // offline fallback: the built-in list
+      const kind={3:"bird",40151:"mammal"}[IDX.taxon];
+      IDX.items=CATALOG.filter(e=>IDX.taxon===1||(kind?e.kind===kind:e.kind==="other")).filter(e=>!IDX.threat||["CR","EN","VU","NT"].includes(e.iucn))
+        .map(e=>({cat:e,name:e.name,sci:e.sci,sub:e.where,badge:["CR","EN","VU","NT"].includes(e.iucn)?` <span class="iucn ${e.iucn}">${e.iucn}</span>`:""}));IDX.offline=true;}}
+  finally{if(my===IDX.seq){IDX.loading=false;drawIndex();}}
+}
+function drawIndex(){
+  const box=$("idx");if(!box)return;box.innerHTML="";IDX.items.forEach(it=>box.appendChild(aqRow(it)));
+  const g=$("idxGroups").querySelector('[aria-pressed="true"]').textContent;
+  const where=IDX.scope==="view"?(IDX.boxed?"where you're looking":"worldwide (zoom in to narrow it)"):"worldwide";
+  $("idxTitle").textContent=(IDX.threat?"Threatened ":"")+(g==="All animals"?"Wildlife":g.replace(/^All /,""));
+  $("idxSub").textContent=IDX.offline?"built-in list (offline)":IDX.total?`${IDX.total.toLocaleString()} species ${where}${F.month?", "+MONTHS[F.month-1]:""}`:(IDX.loading?"":`none ${where}`);
+  drawIndexFooter();
+}
+function drawIndexFooter(){
+  const f=$("idxMore");
+  if(IDX.loading)f.innerHTML='<span class="skel hint">Loading species…</span>';
+  else if(IDX.err&&!IDX.offline)f.innerHTML=`<span class="hint">Couldn't load more: ${esc(IDX.err)}.</span>`;
+  else if(IDX.offline)f.innerHTML=`<span class="hint">iNaturalist didn't respond, so this is the built-in list. <button class="btn ghost" id="idxRetry">Try again</button></span>`;
+  else if(!IDX.done)f.innerHTML='<button class="btn ghost" id="idxLoad">Load more species</button>';
+  else f.innerHTML=IDX.items.length?'<span class="hint">End of the list.</span>':'<span class="hint">No species match. Try another group, "Any time of year", or Worldwide.</span>';
+  const l=$("idxLoad");if(l)l.addEventListener("click",()=>loadIndex(false));
+  const rt=$("idxRetry");if(rt)rt.addEventListener("click",()=>{IDX.offline=false;loadIndex(true);});
+}
+// load more automatically when the end of the list scrolls into view
+new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)&&!IDX.done&&!IDX.loading&&IDX.items.length)loadIndex(false);},{root:$("p-wild"),rootMargin:"300px"}).observe($("idxMore"));
+$("idxGroups").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  $("idxGroups").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));IDX.taxon=+b.dataset.t;IDX.offline=false;loadIndex(true);});
+$("idxScope").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  $("idxScope").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));IDX.scope=b.dataset.v;IDX.offline=false;loadIndex(true);});
+$("idxThreat").addEventListener("click",()=>{IDX.threat=!IDX.threat;$("idxThreat").setAttribute("aria-pressed",IDX.threat);IDX.offline=false;loadIndex(true);});
+// follow the map when browsing "where I'm looking"
+let idxMoveT=0;
+viewer.camera.moveEnd.addEventListener(()=>{if(IDX.scope!=="view")return;clearTimeout(idxMoveT);
+  idxMoveT=setTimeout(()=>{const nb=JSON.stringify(viewBox());if(nb===IDX.lastBox)return;IDX.lastBox=nb;IDX.offline=false;loadIndex(true);},900);});
 async function animalSearch(q){
   const my=++aqSeq,ql=q.toLowerCase();
   const local=CATALOG.filter(e=>(e.name+" "+e.sci).toLowerCase().includes(ql)).slice(0,4).map(e=>({cat:e,name:e.name,sci:e.sci,sub:e.where+(e.iucn&&e.iucn!=="LC"&&e.iucn!=="DD"?" · "+IUCN[e.iucn]:"")}));
@@ -1483,7 +1569,7 @@ async function animalSearch(q){
     if(!aqLast.length)$("aqRes").innerHTML='<div class="hint" style="padding:8px">No animals match that name. Try a common name like "hawk" or "deer".</div>';
   }catch(err){if(my!==aqSeq)return;drawAq();$("aqRes").insertAdjacentHTML("beforeend",`<div class="hint" style="padding:8px">Couldn't search iNaturalist: ${esc(err.message)}.</div>`);}
 }
-$("aq").addEventListener("input",e=>{const v=e.target.value.trim();$("picksBox").hidden=!!v;clearTimeout(aqT);
+$("aq").addEventListener("input",e=>{const v=e.target.value.trim();$("idxSec").hidden=!!v;clearTimeout(aqT);
   if(!v){aqSeq++;aqLast=[];$("aqRes").innerHTML="";return;}aqT=setTimeout(()=>animalSearch(v),250);});
 $("aq").addEventListener("keydown",e=>{if(e.key==="Enter"){const f=$("aqRes").querySelector(".cat");if(f)f.click();}if(e.key==="Escape")e.target.blur();});
 
@@ -1491,11 +1577,11 @@ $("aq").addEventListener("keydown",e=>{if(e.key==="Enter"){const f=$("aqRes").qu
 if(!store.get("wl.coach3",false)){$("coach").hidden=false;$("coachOk").focus();}
 $("coachOk").addEventListener("click",()=>{$("coach").hidden=true;store.set("wl.coach3",true);});
 
-setAdv(adv,false);renderPicks();layoutMode();
+setAdv(adv,false);layoutMode();
 if(phone.matches)setSheet("peek",false);
 rebuildActive();buildSightings();renderLegend();renderCatalog();
 viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-50,25,22000000)});altText();updateCompass();refreshLight();
-viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-72.7,40,phone.matches?16000000:12500000),duration:reduce?0:2.5,complete:refreshLight});
+viewer.camera.flyTo({destination:C.Cartesian3.fromDegrees(-72.7,40,phone.matches?16000000:12500000),duration:reduce?0:2.5,complete:()=>{refreshLight();IDX.lastBox=JSON.stringify(viewBox());loadIndex(true);}});
 
 })();
 </script>
