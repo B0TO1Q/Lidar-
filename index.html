@@ -797,9 +797,9 @@ const esri=L.addImageryProvider(xyz("https://server.arcgisonline.com/ArcGIS/rest
 /* relief */
 let mixVal=.25,relief=[];
 function buildRelief(){
-  const idx=L.indexOf(esri)+1,put=p=>{const l=L.addImageryProvider(p,idx+relief.length);relief.push(l);};
+  const idx=L.indexOf(esri)+1,put=p=>{const l=L.addImageryProvider(asShade(p),idx+relief.length);relief.push(l);};
   put(xyz("https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}",{maximumLevel:16,credit:"Hillshade © Esri"}));
-  put(xyz("https://basemap.nationalmap.gov/arcgis/rest/services/USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}",{rectangle:US_RECT,maximumLevel:16,credit:"Relief: USGS 3DEP"}));
+  put(minLvl(xyz("https://basemap.nationalmap.gov/arcgis/rest/services/USGSShadedReliefOnly/MapServer/tile/{z}/{y}/{x}",{rectangle:US_RECT,maximumLevel:16,credit:"Relief: USGS 3DEP"}),8));
   put(imageServer(USGS_IS,"Hillshade Multidirectional",{rect:US_RECT,minLevel:16,mercator:true}));
   put(imageServer(ARCTIC_IS,"Hillshade Multidirectional",{rect:ARCTIC_RECT,maxLevel:17,credit:"ArcticDEM: PGC"}));
   put(imageServer(ANTARC_IS,"Hillshade Multidirectional",{rect:ANTARC_RECT,maxLevel:16,credit:"AntarcticDEM: PGC"}));
@@ -1424,6 +1424,36 @@ function clearPin(){
 }
 $("clearPin").addEventListener("click",clearPin);
 
+
+/* ================= relief tiles as shadow + highlight ================= */
+/* A hillshade tile is mostly flat gray, which washes out the satellite image. Each relief layer learns
+   its "flat" gray (the most common value across its tiles) and redraws darker pixels as transparent
+   shadow and lighter pixels as transparent highlight, so flat ground and ocean disappear. */
+function minLvl(p,min){const o=p.requestImage.bind(p);p.requestImage=(x,y,l,r)=>l<min?Promise.resolve(blank):o(x,y,l,r);return p;}
+function asShade(p){
+  const hist=new Float64Array(256);let flat=-1,seen=0;
+  const o=p.requestImage.bind(p);
+  p.requestImage=(x,y,l,r)=>{const pr=o(x,y,l,r);if(!pr)return pr;
+    return Promise.resolve(pr).then(img=>{
+      try{
+        const w=img.width,h=img.height;if(!w||w<8)return img;
+        const c=document.createElement("canvas");c.width=w;c.height=h;const g=c.getContext("2d",{willReadFrequently:true});g.drawImage(img,0,0);
+        const d=g.getImageData(0,0,w,h),a=d.data;
+        for(let i=0;i<a.length;i+=16){if(a[i+3]>=128)hist[a[i]]++;}
+        seen++;if(flat<0||seen%4===0){let m=0;for(let v=1;v<256;v++)if(hist[v]>hist[m])m=v;flat=m;}
+        const f=Math.max(30,Math.min(235,flat)),dz=4;
+        for(let i=0;i<a.length;i+=4){
+          if(a[i+3]<128){a[i+3]=0;continue;}
+          const v=a[i];
+          if(v<f-dz){const k=(f-v)/f;a[i]=a[i+1]=a[i+2]=0;a[i+3]=Math.min(255,k*330);}
+          else if(v>f+dz){const k=(v-f)/(255-f);a[i]=a[i+1]=a[i+2]=255;a[i+3]=Math.min(200,k*220);}
+          else a[i+3]=0;
+        }
+        g.putImageData(d,0,0);return c;
+      }catch(_){return img;}
+    });};
+  return p;
+}
 
 /* ================= search ================= */
 const HOTSPOTS=[
