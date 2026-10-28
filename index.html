@@ -1750,7 +1750,10 @@ const localParts=(d,off)=>{const x=new Date(d.getTime()+off*1000);return {date:x
 const angDiff=(a,b)=>{let d=Math.abs(a-b)%360;return d>180?360-d:d;};
 const fmtDay=(ds)=>{const [y,m,d]=ds.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});};
 function inatFresh(path,params){const u=INAT+path+"?"+new URLSearchParams(Object.entries(params).filter(([,v])=>v!==""&&v!=null)).toString();inatCache.delete(u);return inat(path,params);}
-function agoText(iso){if(!iso)return "";const m=(Date.now()-Date.parse(iso))/60000;if(m<60)return Math.max(1,Math.round(m))+" min ago";const h=m/60;if(h<24)return Math.round(h)+" h ago";return Math.round(h/24)+" d ago";}
+function obsWhen(o){const t=Date.parse(o.time_observed_at||""),c=Date.parse(o.created_at||"");let w=isFinite(t)?t:c;if(isFinite(c)&&w>c)w=c;return isFinite(w)?w:0;}
+function agoText(v){if(!v)return "";const ms=typeof v==="number"?v:Date.parse(v);if(!isFinite(ms))return "";const m=(Date.now()-ms)/60000;
+  if(m<2)return "just now";if(m<60)return Math.round(m)+" min ago";const h=m/60;if(h<24)return Math.round(h)+" h ago";const d=Math.round(h/24);return d+(d===1?" day ago":" days ago");}
+const idNote=o=>o.quality_grade==="needs_id"?" · ID not confirmed yet":"";
 function kmBetween(a,b,c,d){const R=6371,r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
 
 /* ================= species signal: season + time of day ================= */
@@ -1888,7 +1891,7 @@ async function loadLately(loc,my){
     if(!res.length){box.innerHTML='<span class="hint">Nothing reported within 25 km in the last 3 days.</span>';return;}
     box.innerHTML="";res.forEach(o=>{const b=document.createElement("button");b.className="sp";
       const [la,lo]=(o.location||"0,0").split(",").map(Number),km=kmBetween(loc.lat,loc.lng,la,lo);
-      b.innerHTML=`<img alt="" loading="lazy" src="${esc(o.photos?.[0]?.url||"")}"><span class="nm"><b>${esc(titleCase(o.taxon.preferred_common_name||o.taxon.name))}</b><i>${esc(agoText(o.time_observed_at||o.created_at))} · ${km<1?"under 1":Math.round(km)} km away${o.obscured?" · location blurred":""}</i></span>`;
+      b.innerHTML=`<img alt="" loading="lazy" src="${esc(o.photos?.[0]?.url||"")}"><span class="nm"><b>${esc(titleCase(o.taxon.preferred_common_name||o.taxon.name))}</b><i>${esc(agoText(obsWhen(o)))} · ${km<1?"under 1":Math.round(km)} km away${o.obscured?" · location blurred":""}</i></span>`;
       b.addEventListener("click",()=>{flyTo(lo,la,4000,-45,0);showObs(o);});box.appendChild(b);});
   }catch(err){if(ls===lateSeq)box.innerHTML=`<span class="hint">Couldn't load recent sightings: ${esc(err.message)}.</span>`;}
 }
@@ -1918,7 +1921,7 @@ async function loadLive(announce){
     const tax=active.length&&liveTaxon===1?active.map(a=>a.id).join(","):liveTaxon;
     const r=await inatFresh("observations",{...box,d1,order_by:"observed_on",order:"desc",per_page:200,photos:"true",verifiable:"true",locale:"en",taxon_id:tax});
     if(my!==liveSeq||!liveOn)return;
-    const when=o=>Date.parse(o.time_observed_at||o.created_at)||0;
+    const when=obsWhen;
     liveRes=(r.results||[]).filter(o=>o.location&&o.taxon).sort((x,y)=>when(y)-when(x));liveState="ok";
     liveDS.entities.removeAll();
     liveRes.forEach(o=>{const [la,lo]=o.location.split(",").map(Number);
@@ -1942,7 +1945,7 @@ function drawFeed(errMsg){
   box.innerHTML="";
   liveRes.slice(0,60).forEach(o=>{const b=document.createElement("button");b.className="sp";
     const [la,lo]=o.location.split(",").map(Number),col=ICOL[o.taxon.iconic_taxon_name]||"#e8eee9";
-    b.innerHTML=`<img alt="" loading="lazy" src="${esc(o.photos?.[0]?.url||"")}"><span class="nm"><b>${esc(titleCase(o.taxon.preferred_common_name||o.taxon.name))}</b><i>${esc(agoText(o.time_observed_at||o.created_at))}${o.place_guess?" · "+esc(o.place_guess):""}</i></span><span class="sw" style="background:${col};border-color:${col}"></span>`;
+    b.innerHTML=`<img alt="" loading="lazy" src="${esc(o.photos?.[0]?.url||"")}"><span class="nm"><b>${esc(titleCase(o.taxon.preferred_common_name||o.taxon.name))}</b><i>${esc(agoText(obsWhen(o)))}${o.place_guess?" · "+esc(o.place_guess):""}${idNote(o)}</i></span><span class="sw" style="background:${col};border-color:${col}"></span>`;
     b.addEventListener("click",()=>focusObs(o));box.appendChild(b);});
   if(n>60)box.insertAdjacentHTML("beforeend",'<div class="hint" style="padding:8px">Showing the 60 newest. Zoom in to narrow the area.</div>');
 }
@@ -1959,8 +1962,8 @@ function showObs(o){
   const [la,lo]=(o.location||"0,0").split(",").map(Number);
   card.innerHTML=`${ph?`<img alt="${esc(name)}" src="${esc(ph)}">`:'<span class="ph"></span>'}
     <div class="tx"><b>${esc(name)}</b><span class="hint">${esc(o.taxon.name)}</span>
-      <span class="hint">${esc(agoText(o.time_observed_at||o.created_at))}${o.user?.login?" · by "+esc(o.user.login):""}</span>
-      <span class="hint">${esc(o.place_guess||"")}${o.obscured?" · exact location blurred to protect the animal":""}</span></div>
+      <span class="hint">${esc(agoText(obsWhen(o)))}${o.user?.login?" · by "+esc(o.user.login):""}</span>
+      <span class="hint">${esc(o.place_guess||"")}${o.obscured?" · exact location blurred to protect the animal":""}${idNote(o)}</span></div>
     <div class="row"><button class="btn solid" id="obsScout" style="flex:1">Scout here</button><a class="btn ghost" href="https://www.inaturalist.org/observations/${o.id}" target="_blank" rel="noopener">iNaturalist</a><button class="iconbtn" id="obsClose" aria-label="Close"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>`;
   card.hidden=false;toastEl.hidden=true;clearTimeout(toastT);
   $("obsClose").addEventListener("click",()=>card.hidden=true);
@@ -1984,14 +1987,14 @@ function drawTip(){
   const el=$("tip");if(!tipItems.length){el.hidden=true;return;}
   const it=tipItems[tipSel]||tipItems[0];let main="",acts="";
   if(it.kind==="obs"){const o=it.o,ph=o.photos?.[0]?.url||"";
-    main=`<div class="tipmain">${ph?`<img alt="" src="${esc(ph)}">`:'<span class="ph"></span>'}<span class="tx"><b>${esc(tipRowName(it))}</b><i>${esc(agoText(o.time_observed_at||o.created_at))}${o.user?.login?" · "+esc(o.user.login):""}</i><i>${esc(o.place_guess||o.taxon.name)}${o.obscured?" · location blurred":""}</i></span></div>`;
+    main=`<div class="tipmain">${ph?`<img alt="" src="${esc(ph)}">`:'<span class="ph"></span>'}<span class="tx"><b>${esc(tipRowName(it))}</b><i>${esc(agoText(obsWhen(o)))}${o.user?.login?" · "+esc(o.user.login):""}</i><i>${esc(o.place_guess||o.taxon.name)}${o.obscured?" · location blurred":""}${idNote(o)}</i></span></div>`;
     acts=`<div class="tipacts"><button class="btn ghost" data-a="det">Details</button><button class="btn solid" data-a="scout">Scout here</button></div>`;}
   else{const sp=it.s;
     main=`<div class="tipmain"><span class="ph" style="display:grid;place-items:center;color:var(--good)"><svg width="18" height="18" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5h8v11L7 9.5l-4 3z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></span><span class="tx"><b>${esc(sp.name)}</b><i>Your saved spot · ${esc(sp.saved||"")}</i><i>${sp.lat.toFixed(4)}, ${sp.lng.toFixed(4)}</i></span></div>`;
     acts=`<div class="tipacts"><button class="btn solid" data-a="scoutspot">Scout this spot</button></div>`;}
   const others=tipItems.map((x,i)=>[x,i]).filter(([,i])=>i!==tipSel).slice(0,4);
   const more=others.length?`<div class="tipmore">${others.map(([x,i])=>{const col=x.kind==="obs"?(ICOL[x.o.taxon.iconic_taxon_name]||"#e8eee9"):"#94d17e";
-      return `<button data-i="${i}"><span class="sw" style="background:${col};border-color:${col}"></span>${esc(tipRowName(x))}<span class="muted" style="margin-left:auto">${x.kind==="obs"?esc(agoText(x.o.time_observed_at||x.o.created_at)):"spot"}</span></button>`;}).join("")}${tipItems.length>5?`<span class="tiphint">+${tipItems.length-5} more here. Zoom in to separate them.</span>`:""}</div>`:"";
+      return `<button data-i="${i}"><span class="sw" style="background:${col};border-color:${col}"></span>${esc(tipRowName(x))}<span class="muted" style="margin-left:auto">${x.kind==="obs"?esc(agoText(obsWhen(x.o))):"spot"}</span></button>`;}).join("")}${tipItems.length>5?`<span class="tiphint">+${tipItems.length-5} more here. Zoom in to separate them.</span>`:""}</div>`:"";
   el.innerHTML=main+more+(tipPinned?acts:`<span class="tiphint">${phone.matches?"Tap":"Click"} for details</span>`);
   el.classList.toggle("pinned",tipPinned);el.hidden=false;placeTip();
   if(tipPinned){
