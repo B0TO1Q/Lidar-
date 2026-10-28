@@ -1943,7 +1943,7 @@ function drawFeed(errMsg){
   liveRes.slice(0,60).forEach(o=>{const b=document.createElement("button");b.className="sp";
     const [la,lo]=o.location.split(",").map(Number),col=ICOL[o.taxon.iconic_taxon_name]||"#e8eee9";
     b.innerHTML=`<img alt="" loading="lazy" src="${esc(o.photos?.[0]?.url||"")}"><span class="nm"><b>${esc(titleCase(o.taxon.preferred_common_name||o.taxon.name))}</b><i>${esc(agoText(o.time_observed_at||o.created_at))}${o.place_guess?" · "+esc(o.place_guess):""}</i></span><span class="sw" style="background:${col};border-color:${col}"></span>`;
-    b.addEventListener("click",()=>{flyTo(lo,la,5000,-45,0);showObs(o);if(phone.matches)setSheet("peek");});box.appendChild(b);});
+    b.addEventListener("click",()=>focusObs(o));box.appendChild(b);});
   if(n>60)box.insertAdjacentHTML("beforeend",'<div class="hint" style="padding:8px">Showing the 60 newest. Zoom in to narrow the area.</div>');
 }
 $("lvWin").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;$("lvWin").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));liveDays=+b.dataset.v;if(!liveOn)setLiveLayer(true);else loadLive(false);});
@@ -2004,7 +2004,8 @@ function drawTip(){
 }
 function placeTip(){
   const el=$("tip");if(el.hidden||!tipAnchor)return;const w=toWin(tipAnchor);
-  if(!w||!new C.EllipsoidalOccluder(globe.ellipsoid,viewer.camera.positionWC).isPointVisible(tipAnchor)){if(tipPinned)hideTip();else el.hidden=true;return;}
+  if(!w||!new C.EllipsoidalOccluder(globe.ellipsoid,viewer.camera.positionWC).isPointVisible(tipAnchor)){el.style.visibility="hidden";return;}
+  el.style.visibility="";
   const r=el.getBoundingClientRect(),W=innerWidth,below=w.y-r.height-18<8;
   const x=Math.max(12+r.width/2,Math.min(W-12-r.width/2,w.x)),y=below?w.y+16:w.y-r.height-14;
   el.classList.toggle("below",below);el.style.transform=`translate(${Math.round(x-r.width/2)}px,${Math.round(y)}px)`;
@@ -2013,7 +2014,18 @@ function hideTip(){tipItems=[];tipPinned=false;tipAnchor=null;$("tip").hidden=tr
 function markTap(winPos){
   const near=marksNear(winPos,phone.matches||matchMedia("(pointer:coarse)").matches?30:16);
   if(!near.length){if(tipPinned){hideTip();return true;}return false;}
-  tipItems=near;tipSel=0;tipPinned=true;tipAnchor=near[0].pos;$("obsCard").hidden=true;drawTip();return true;
+  tipItems=near;tipSel=0;tipPinned=true;tipAnchor=near[0].pos;$("obsCard").hidden=true;drawTip();focusAt(near[0].pos);return true;
+}
+/* ease in to roughly state level around a mark; never zooms back out */
+function focusAt(pos){
+  const range=C.Cartesian3.distance(viewer.camera.positionWC,pos),target=phone.matches?900000:650000;
+  if(range<=target*1.15)return;
+  viewer.camera.flyToBoundingSphere(new C.BoundingSphere(pos,0),{offset:new C.HeadingPitchRange(viewer.camera.heading,C.Math.toRadians(-85),target),duration:reduce?0:1.6});
+}
+function focusObs(o){
+  const [la,lo]=o.location.split(",").map(Number),pos=C.Cartesian3.fromDegrees(lo,la);
+  tipItems=[{kind:"obs",o,pos}];tipSel=0;tipPinned=true;tipAnchor=pos;$("obsCard").hidden=true;drawTip();focusAt(pos);
+  if(phone.matches)setSheet("peek");
 }
 scene.postRender.addEventListener(()=>{if(!$("tip").hidden)placeTip();});
 const tipHnd=new C.ScreenSpaceEventHandler(scene.canvas);let tipMoveT=0;
@@ -2089,11 +2101,8 @@ if(phone.matches)setSheet("peek",false);
 tab("live",phone.matches?"peek":undefined);
 rebuildActive();buildSightings();renderLegend();renderCatalog();
 liveOn=true;$("cLive").setAttribute("aria-pressed",true);liveState="loading";drawFeed();
-const sv=store.get("wl.view",null),hm=store.get("wl.home",null);
-let dest,orient;
-if(sv&&isFinite(sv.lat)&&sv.h<6000000){dest=C.Cartesian3.fromDegrees(sv.lng,sv.lat,sv.h);orient={heading:sv.heading||0,pitch:sv.pitch||-Math.PI/2,roll:0};}
-else if(hm&&isFinite(hm.lat)){dest=C.Cartesian3.fromDegrees(hm.lng,hm.lat,180000);}
-else{dest=C.Cartesian3.fromDegrees(-96,38.5,phone.matches?6500000:5200000);}
+// always open on the whole USA, centered in the part of the screen the panel doesn't cover
+const dest=phone.matches?C.Cartesian3.fromDegrees(-96.5,34,6800000):C.Cartesian3.fromDegrees(-104.5,38,6100000),orient=undefined;
 viewer.camera.setView({destination:C.Cartesian3.fromDegrees(-60,30,22000000)});altText();updateCompass();refreshLight();
 viewer.camera.flyTo({destination:dest,orientation:orient,duration:reduce?0:2.2,complete:()=>{refreshLight();IDX.lastBox=JSON.stringify(viewBox());loadIndex(true);setLiveLayer(true);}});
 
